@@ -4,10 +4,10 @@
 [![PR's Welcome](https://img.shields.io/badge/PRs%20-welcome-brightgreen.svg)](#contribute)
 [![Build Status](https://dev.azure.com/bosquepl/BosqueDevOps/_apis/build/status/Microsoft.BosqueLanguage?branchName=master)](https://dev.azure.com/bosquepl/BosqueDevOps/_build/latest?definitionId=1&branchName=master)
 
-The Bosque programming language is designed for writing code that is simple, obvious, and easy to reason about for both humans and machines. The key design features of the language provide ways to avoid _accidental complexity_ in the development and coding process. The result is improved developer productivity, increased software quality, and enable a range of new compilers and developer tooling experiences.
+The Bosque programming language is a [_Microsoft Research_](https://www.microsoft.com/en-us/research/project/bosque-programming-language/) project that is investigating language designs for writing code that is simple, obvious, and easy to reason about for both humans and machines. The key design features of the language provide ways to avoid _accidental complexity_ in the development and coding process. The result is improved developer productivity, increased software quality, and enable a range of new compilers and developer tooling experiences.
 
 Small samples of code to give a sample flavor are below ([Code Snippets](#Code-Snippets)). A rundown of notable and/or unique features in the Bosque language is provided in the [language overview section 0](docs/language/overview.md#0-Highlight-Features).
-For a look at how the language works and flows _in the large_ please see the code for a [simple tic-tac-toe](docs/tictactoe.md) program that supports updating the board with user supplied moves, making an automated computer move, and managing the various game state.
+For a look at how the language works and flows _in the large_ please see the code for a [simple tic-tac-toe](ref_impl/src/test/apps/tictactoe/main.bsq) program that supports updating the board with user supplied moves, making an automated computer move, and managing the various game state.
 
 **Note:** This repository and code represent a project in an early state. This was done to enable academic collaboration and community participation. However, this means that the language is subject to revision, there are bugs and missing functionality, and the performance is limited. Thus, we **do not** recommend the use of the Bosque language for _any_ production work and instead encourage experimentation only with small/experimental side projects at this point in time.
 
@@ -35,20 +35,20 @@ All odd check using rest parameters and lambda:
 
 ```none
 function allOdd(...args: List[Int]): Bool {
-    return args.all(fn(x) => x % 2 == 1);
+    return args->all(fn(x) => x % 2 == 1);
 }
 
 allOdd(1, 3, 4) //false
 ```
 
-Update y-value on point Record
+Bulk update properties on Record
 
 ```none
-function updateY(point: {x: Int, y: Int, z: Int}, value: Int): {x: Int, y: Int, z: Int} {
-    return point<~(y=value);
+function update(point: {x: Int, y: Int, z: Int}, value: Int): {x: Int, y: Int, z: Int} {
+    return point<~(y=value, x=-point.x);
 }
 
-updateY(@{x=1, y=2, z=3}, 5) //@{x=1, y=5, z=3}
+update(@{x=1, y=2, z=3}, 5) //@{x=-1, y=5, z=3}
 ```
 
 Noneable access on optional argument:
@@ -63,7 +63,7 @@ Sign (with optional argument):
 
 ```none
 function sign(x?: Int): Int {
-    var! y;
+    var! y: Int;
 
     if(x == none || x == 0) {
         y = 0;
@@ -78,11 +78,19 @@ function sign(x?: Int): Int {
 
 ## Using the Bosque Language
 
-The current focus of the Bosque project is core language design. As a result there is limited support for compilation/development and _no_ support for packaging, deployment, lifecyle management, etc.
+The current focus of the Bosque project is core language design. As a result there is limited support for compilation/development and _no_ support for packaging, deployment, lifecycle management, etc.
+
+### Requirements
+
+In order to build the language the following are needed:
+
+- 64 bit Operating System
+- The LTS version of [node.js](https://nodejs.org/en/download/) ( According to your OS )
+- Typescript (install with: `npm i typescript -g`)
 
 ### Build & Test
 
-The `ref_impl` directory contains the reference implementation parser, type checker, interpreter, and command line runner. In this directory build and test the Bosque reference implementation with:
+The `ref_impl` directory contains the reference implementation parser, type checker, interpreter, and command line runner. In this directory, build and test the Bosque reference implementation with:
 
 ```none
 npm install && npm run-script build && npm test
@@ -90,7 +98,7 @@ npm install && npm run-script build && npm test
 
 ### Command Line Execution
 
-The `ref_impl` directory contains a simple command line runner for standalone Bosque (`.bsq`) files. These files must have a single `entrypoint` function called `main()` (see [example](ref_impl/src/test/apps/tictactoe/main.bsq)). The code in the file can be parsed, type checked, and executed with:
+The `ref_impl` directory contains a simple command line runner for standalone Bosque (`.bsq`) files. These files must have a single `entrypoint` function called `main()` (see [some examples](ref_impl/src/test/apps)). The code in the file can be parsed, type checked, and executed with:
 
 ```none
 node bin/test/app_runner.js FILE.bsq
@@ -106,6 +114,7 @@ This project welcomes community contributions.
 
 * [Submit bugs](https://github.com/Microsoft/BosqueLanguage/issues) and help us verify fixes.
 * [Submit pull requests](https://github.com/Microsoft/BosqueLanguage/pulls) for bug fixes and features and discuss existing proposals.
+* Chat about the [@BosqueLanguage](https://twitter.com/BosqueLanguage) (or [#BosqueLanguage](https://twitter.com/hashtag/BosqueLanguage)) on Twitter.
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or

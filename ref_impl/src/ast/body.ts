@@ -69,6 +69,50 @@ class IfElse<T> {
     }
 }
 
+abstract class MatchGuard {
+    readonly optionalWhen: Expression | undefined;
+
+    constructor(optionalWhen: Expression | undefined) {
+        this.optionalWhen = optionalWhen;
+    }
+}
+
+class WildcardMatchGuard extends MatchGuard {
+    constructor() {
+        super(undefined);
+    }
+}
+
+class TypeMatchGuard extends MatchGuard {
+    readonly oftype: TypeSignature;
+
+    constructor(oftype: TypeSignature, optionalWhen: Expression | undefined) {
+        super(optionalWhen);
+        this.oftype = oftype;
+    }
+}
+
+class StructureMatchGuard extends MatchGuard {
+    readonly match: StructuredAssignment;
+    readonly decls: Set<string>;
+
+    constructor(match: StructuredAssignment, decls: Set<string>, optionalWhen: Expression | undefined) {
+        super(optionalWhen);
+        this.match = match;
+        this.decls = decls;
+    }
+}
+
+class MatchEntry<T> {
+    readonly check: MatchGuard;
+    readonly action: T;
+
+    constructor(check: MatchGuard, action: T) {
+        this.check = check;
+        this.action = action;
+    }
+}
+
 enum ExpressionTag {
     Clear = "[CLEAR]",
     InvalidExpresion = "[INVALID]",
@@ -106,9 +150,9 @@ enum ExpressionTag {
     CoalesceExpression = "CoalesceExpression",
     SelectExpression = "SelectExpression",
 
-    //    BlockStatementExpression,
-    //    IfExpression,
-    //    MatchExpression,
+    BlockStatementExpression = "BlockStatementExpression",
+    IfExpression = "IfExpression",
+    MatchExpression = "MatchExpression",
     //    ProroguedExpression,
 
     //    LazyExpression
@@ -538,6 +582,35 @@ class SelectExpression extends Expression {
     }
 }
 
+class BlockStatementExpression extends Expression {
+    readonly ops: Statement[];
+
+    constructor(sinfo: SourceInfo, ops: Statement[]) {
+        super(ExpressionTag.BlockStatementExpression, sinfo);
+        this.ops = ops;
+    }
+}
+
+class IfExpression extends Expression {
+    readonly flow: IfElse<Expression>;
+
+    constructor(sinfo: SourceInfo, flow: IfElse<Expression>) {
+        super(ExpressionTag.IfExpression, sinfo);
+        this.flow = flow;
+    }
+}
+
+class MatchExpression extends Expression {
+    readonly sval: Expression;
+    readonly flow: MatchEntry<Expression>[];
+
+    constructor(sinfo: SourceInfo, sval: Expression, flow: MatchEntry<Expression>[]) {
+        super(ExpressionTag.MatchExpression, sinfo);
+        this.sval = sval;
+        this.flow = flow;
+    }
+}
+
 enum StatementTag {
     Clear = "[CLEAR]",
     InvalidStatement = "[INVALID]",
@@ -546,16 +619,19 @@ enum StatementTag {
 
     VariableDeclarationStatement = "VariableDeclarationStatement",
     VariableAssignmentStatement = "VariableAssignmentStatement",
-    //    StructuredVariableAssignmentStatement,
+    StructuredVariableAssignmentStatement = "StructuredVariableAssignmentStatement",
 
     ReturnStatement = "ReturnStatement",
     YieldStatement = "YieldStatement",
 
     IfElseStatement = "IfElseStatement",
-    //    MatchStatement,
+    MatchStatement = "MatchStatement",
 
+    AbortStatement = "AbortStatement",
     AssertStatement = "AssertStatement", //assert(x > 0)
     CheckStatement = "CheckStatement", //check(x > 0)
+
+    DebugStatement = "DebugStatement", //print an arg or if empty attach debugger
 
     BlockStatement = "BlockStatement"
 }
@@ -608,6 +684,88 @@ class VariableAssignmentStatement extends Statement {
     }
 }
 
+class StructuredAssignment {
+}
+
+class IgnoreTermStructuredAssignment extends StructuredAssignment {
+    readonly isOptional: boolean;
+    readonly termType: TypeSignature;
+
+    constructor(isOptional: boolean, termType: TypeSignature) {
+        super();
+        this.isOptional = isOptional;
+        this.termType = termType;
+    }
+}
+
+class ConstValueStructuredAssignment extends StructuredAssignment {
+    readonly constValue: Expression; //this should always be a constant evaluateable expression (literal, const, statics only)
+
+    constructor(constValue: Expression) {
+        super();
+        this.constValue = constValue;
+    }
+}
+
+class VariableDeclarationStructuredAssignment extends StructuredAssignment {
+    readonly isOptional: boolean;
+    readonly vname: string;
+    readonly isConst: boolean;
+    readonly vtype: TypeSignature;
+
+    constructor(isOptional: boolean, vname: string, isConst: boolean, vtype: TypeSignature) {
+        super();
+        this.isOptional = isOptional;
+        this.vname = vname;
+        this.isConst = isConst;
+        this.vtype = vtype;
+    }
+}
+
+class VariableAssignmentStructuredAssignment extends StructuredAssignment {
+    readonly isOptional: boolean;
+    readonly vname: string;
+
+    constructor(isOptional: boolean, vname: string) {
+        super();
+        this.isOptional = isOptional;
+        this.vname = vname;
+    }
+}
+
+class TupleStructuredAssignment extends StructuredAssignment {
+    readonly assigns: StructuredAssignment[];
+    readonly isOpen: boolean;
+
+    constructor(assigns: StructuredAssignment[], isOpen: boolean) {
+        super();
+        this.assigns = assigns;
+        this.isOpen = isOpen;
+    }
+}
+
+class RecordStructuredAssignment extends StructuredAssignment {
+    readonly assigns: [string, StructuredAssignment][];
+    readonly isOpen: boolean;
+
+    constructor(assigns: [string, StructuredAssignment][], isOpen: boolean) {
+        super();
+        this.assigns = assigns;
+        this.isOpen = isOpen;
+    }
+}
+
+class StructuredVariableAssignmentStatement extends Statement {
+    readonly assign: StructuredAssignment;
+    readonly exp: Expression;
+
+    constructor(sinfo: SourceInfo, assign: StructuredAssignment, exp: Expression) {
+        super(StatementTag.StructuredVariableAssignmentStatement, sinfo);
+        this.assign = assign;
+        this.exp = exp;
+    }
+}
+
 class ReturnStatement extends Statement {
     readonly value: Expression;
 
@@ -635,6 +793,23 @@ class IfElseStatement extends Statement {
     }
 }
 
+class MatchStatement extends Statement {
+    readonly sval: Expression;
+    readonly flow: MatchEntry<BlockStatement>[];
+
+    constructor(sinfo: SourceInfo, sval: Expression, flow: MatchEntry<BlockStatement>[]) {
+        super(StatementTag.MatchStatement, sinfo);
+        this.sval = sval;
+        this.flow = flow;
+    }
+}
+
+class AbortStatement extends Statement {
+    constructor(sinfo: SourceInfo) {
+        super(StatementTag.AbortStatement, sinfo);
+    }
+}
+
 class AssertStatement extends Statement {
     readonly cond: Expression;
 
@@ -650,6 +825,15 @@ class CheckStatement extends Statement {
     constructor(sinfo: SourceInfo, cond: Expression) {
         super(StatementTag.CheckStatement, sinfo);
         this.cond = cond;
+    }
+}
+
+class DebugStatement extends Statement {
+    readonly value: Expression | undefined;
+
+    constructor(sinfo: SourceInfo, value: Expression | undefined) {
+        super(StatementTag.DebugStatement, sinfo);
+        this.value = value;
     }
 }
 
@@ -685,9 +869,12 @@ export {
     PostfixInvoke, PostfixCallLambda,
     PrefixOp, BinOpExpression, BinCmpExpression, BinEqExpression, BinLogicExpression,
     NonecheckExpression, CoalesceExpression, SelectExpression,
+    BlockStatementExpression, IfExpression, MatchExpression,
     StatementTag, Statement, InvalidStatement, EmptyStatement,
     VariableDeclarationStatement, VariableAssignmentStatement,
+    StructuredAssignment, IgnoreTermStructuredAssignment, ConstValueStructuredAssignment, VariableDeclarationStructuredAssignment, VariableAssignmentStructuredAssignment, TupleStructuredAssignment, RecordStructuredAssignment, StructuredVariableAssignmentStatement,
     ReturnStatement, YieldStatement,
-    IfElseStatement, AssertStatement, CheckStatement, BlockStatement,
-    BodyImplementation
+    IfElseStatement, AbortStatement, AssertStatement, CheckStatement, DebugStatement,
+    MatchGuard, WildcardMatchGuard, TypeMatchGuard, StructureMatchGuard, MatchEntry, MatchStatement,
+    BlockStatement, BodyImplementation
 };

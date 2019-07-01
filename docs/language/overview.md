@@ -1,4 +1,4 @@
-# Bosque Compute Language Overview
+# Bosque Language Overview
 
 The Bosque language derives from a combination of [TypeScript](https://www.typescriptlang.org/) inspired syntax and types plus [ML](https://www.smlnj.org/) and [Node/JavaScript](https://nodejs.org/en/) inspired semantics. This document provides an overview of the syntax, operations, and semantics in the Bosque language with an emphasis on the distinctive or unusual features in the language.
 
@@ -19,6 +19,13 @@ The Bosque language derives from a combination of [TypeScript](https://www.types
   - [0.12 Errors and Checks](#0.12-Errors-and-Checks)
   - [0.13 Atomic Constructors and Factories](#0.13-Atomic-Constructors-and-Factories)
   - [0.14 Synthesis Blocks](#0.14-Synthesis-Blocks)
+  - [0.15 Code Style](#0.15-Code-Style)
+    - [0.15.1 Brackets Position](#0.15.1-Brackets-Position)
+    - [0.15.2 Naming Rules](#0.15.2-Naming-Rules)
+    - [0.15.3 Spacing Rules](#0.15.3-Spacing-Rules)
+    - [0.15.4 Colon Rules](#0.15.4-Colon-Rules)
+    - [0.15.5 Method Arguments](#0.15.5-Method-Arguments)
+    - [0.15.6 If Statements](#0.15.6-If-Statements)
 - [1 Type System](#1-Type-System)
   - [1.1 Nominal Types](#1.1-Nominal-Types)
   - [1.2 Structural Types](#1.2-Structural-Types)
@@ -36,7 +43,7 @@ The Bosque language derives from a combination of [TypeScript](https://www.types
   - [5.5 Entity Constructors](#5.5-Entity-Constructors)
   - [5.6 Lambda Constructors](#5.6-Lambda-Constructors)
   - [5.7 Scoped Invokes](#5.7-Scoped-Invokes)
-  - [5.8 None-Chaining](#5.8-None-Chaining)
+  - [5.8 None-Chaining](#5.8-Chaining-and-None-Chaining)
   - [5.9 Tuple Typed Access Operators](#5.9-Tuple-Typed-Access-Operators)
   - [5.10 Record Typed Access Operators](#5.10-Record-Typed-Access-Operators)
   - [5.11 Nominal Typed Access Operators](#5.11-Nominal-Typed-Access-Operators)
@@ -65,7 +72,7 @@ The Bosque language derives from a combination of [TypeScript](https://www.types
   - [6.5 Return and Yield](#6.5-Return-and-Yield)
   - [6.6 Validation](#6.6-Validation)
   - [6.7 If-Then-Else](#6.7-If-Then-Else)
-  - [6.8 Match](#6.8-Match)
+  - [6.8 Switch](#6.8-Switch)
   - [6.9 Block](#6.9-Block)
 - [7 Invokable Declarations](#7-Invokable-Declarations)
 - [8 Concept and Entity Declarations](#8-Concept-and-Entity-Declarations)
@@ -73,9 +80,9 @@ The Bosque language derives from a combination of [TypeScript](https://www.types
 
 # <a name="0-Highlight-Features"></a>0 Highlight Features
 
-The Bosque programming language is designed for writing code that simple, obvious, and easy to reason about for both humans and machines. The design was driven heavily by the identification and elimination of various sources of _accidental complexity_ and insights on how they can be alleviated via the thoughtful language design.
+The Bosque programming language is designed for writing code that is simple, obvious, and easy to reason about for both humans and machines. The design was driven heavily by the identification and elimination of various sources of _accidental complexity_ and insights on how they can be alleviated via the thoughtful language design.
 
-This section highlights contains information on many of the most notable and/or unique features and design choices in the Bosque programming language.
+This section highlights and contains information on many of the most notable and/or unique features and design choices in the Bosque programming language.
 
 ## <a name="0.1-Immutable-Values"></a>0.1 Immutable Values
 
@@ -102,7 +109,7 @@ function abs(x: Int): Int {
 
 **[NOT IMPLEMENTED YET]**
 
-In addition to allowing multiple assignments to variables the Bosque language also allows developers to thread parameters via `ref` argument passing. This alternative to multi-return values simplifies scenarios where an variable (often some sort of environment) is passed to a method which may use and update it. Allowing the update in the parameter eliminates the extra return value management that would otherwise be needed:
+In addition to allowing multiple assignments to variables, the Bosque language also allows developers to thread parameters via `ref` argument passing. This alternative to multi-return values simplifies scenarios where a variable (often some sort of environment) is passed to a method which may use and update it. Allowing the update in the parameter eliminates the extra return value management that would otherwise be needed:
 
 ```none
 function internString(ref env: Map<String, Int>, str: String): Int {
@@ -125,13 +132,13 @@ function foo(zip: String[Zipcode], name: String) {...}
 var zc: String[Zipcode] = ...;
 var user: String = ...;
 
-foo(user, zc) //Type error String not convertable to String[Zipcode]
+foo(user, zc) //Type error String not convertible to String[Zipcode]
 foo(zc, user) //ok
 ```
 
 ## <a name="0.5-Flexible-Invocations"></a>0.5 Flexible Invocations
 
-Bosque has provides _named arguments_ along with _rest_ and _spread_ operators. These can be used to perform simple and powerful data manipulation as part of invocations and constructor operations ([5.1 Arguments](#5.1-Arguments)).
+Bosque provides _named arguments_ along with _rest_ and _spread_ operators. These can be used to perform simple and powerful data manipulation as part of invocations and constructor operations ([5.1 Arguments](#5.1-Arguments)).
 
 ```none
 function nsum(d: Int, ...args: List[Int]): Int {
@@ -172,17 +179,17 @@ var l = @[7, 8, 9];
 var r = @{f=7, g=8};
 
 l@[0, 2];     //@[7, 9]
-l<+(@[5, 6]); //@[7, 8, 5, 6]
+l<+(@[5, 6]); //@[7, 8, 9, 5, 6]
 l#[Int, Int]; //@[7, 8]
 
-r@{f, h};         //@{f=1, h=none}
+r@{f, h};         //@{f=7, h=none}
 r<~(f=5, h=1);    //@{f=5, g=8, h=1}
 r<+(@{f=5, h=1}); //@{f=5, g=8, h=1}
 ```
 
 ## <a name="0.7-None-Processing"></a>0.7 None Processing
 
-Handling `none` values is a relatively common task that can obscure the fundamental intent of a section of code with nests of cases and conditional handling for the special case. To simplify this type of code Bosque includes various forms of _coalescing_ or _short-circuit_ operators ((5.8 None-Chaining)[#5.8 None-Chaining]) to enable code like:
+Handling `none` values is a relatively common task that can obscure the fundamental intent of a section of code with nests of cases and conditional handling for the special case. To simplify this type of code, Bosque includes various forms of _coalescing_ or _short-circuit_ operators ([5.8 Chaining and None Chaining](#5.8-Chaining-and-None-Chaining)) to enable code like:
 
 ```none
 function foo(val?: {tag: Int, value?: String}): String {
@@ -195,12 +202,12 @@ function foo(val?: {tag: Int, value?: String}): String {
 A fundamental concept in a programming language is the iteration construct and a critical question is should this construct be provided as high-level functors, such as filter/map/reduce, or do programmers benefit from the flexibility available with iterative, while or for, looping constructs. To answer this question in a definitive manner the authors of [Mining Semantic Loop Idioms](https://www.microsoft.com/en-us/research/uploads/prod/2018/10/LoopIdioms.pdf) engaged in a study of all the loops "idioms" found in real-world code. The categorization and coverage results showed that almost every loop a developer would want to write falls into a small number of idiomatic patterns which correspond to higher level concepts developers are using in the code, e.g., filter, find, group, map, etc. With this result in mind the Bosque language trades structured loops for a set of high-level iterative processing constructs ([3 Collections](#3-Collections) and [5.18 Pipeline](#5.18-Pipeline)).
 
 ```none
-var v: List[Int?] = List@{1, 2, none, 4};
-  
-//Chained - List@{1, 4, 16}
-v.filter(fn(x) => x != none).map[Int](fn(x) => x*x)
+var v: List[Int?] = List[Int?]@{1, 2, none, 4};
 
-//Piped none filter - List@{1, 4, none, 16}
+//Chained - List@{1, 4, 16}
+v->filter(fn(x) => x != none)->map[Int](fn(x) => x*x)
+
+//Piped none filter - List@{1, 4, 16}
 v |> filter(fn(x) => x != none) |> map[Int](fn(x) => x*x)
 
 //Piped with noneable filter - List@{1, 4, 16}
@@ -216,28 +223,24 @@ Eliminating the boilerplate of writing the same loops repeatedly eliminates whol
 
 The lack of explicit looping constructs, and the presence of collection processing functors, is not unusual in functional languages. However, the result is often the replacement of complex loop structures with complex recursion structures. Complex raw flows obfuscate the intent of the code and hinder automated analysis and tooling regardless of if the flow is a loop or recursion.
 
-Thus, Bosque is designed to encourage limited uses of recursion,
-increase the clarity of the recursive structure, and enable compilers/runtimes to avoid stack related errors. This is done by introducing the `rec` keyword which is used at both declaration sites to indicate a function/method
-is recursive and again at the call site so to affirm that the caller is aware of the recursive nature of the call ([7 Invokable-Declarations](#7-Invokable-Declarations)).
+Thus, Bosque is designed to encourage limited uses of recursion, increase the clarity of the recursive structure, and enable compilers/runtimes to avoid stack related errors. This is done by introducing the `rec` keyword which is used at both declaration sites to indicate a function/method is recursive and again at the call site so as to affirm that the caller is aware of the recursive nature of the call ([7 Invokable-Declarations](#7-Invokable-Declarations)).
 
 ## <a name="0.10-Determinacy"></a>0.10 Determinacy
 
-When the behavior of a code block is under-specified the result is code that is harder to reason about and more prone to errors. As a key goal of the Bosque
-language is to eliminate sources of unneeded complexity that lead to confusion and errors we naturally want to eliminate these under-specified behaviors. Thus, Bosque does not have any _undefined_ behavior such as allowing uninitialized variable reads and eliminates all _under defined_ behavior as well including sorting stability and all associative collections (sets and maps) have a fixed and stable enumeration order.
+When the behavior of a code block is under-specified the result is code that is harder to reason about and more prone to errors. As a key goal of the Bosque language is to eliminate sources of unneeded complexity that lead to confusion and errors we naturally want to eliminate these under-specified behaviors. Thus, Bosque does not have any _undefined_ behavior such as allowing uninitialized variable reads and eliminates all _under defined_ behavior as well including sorting stability and all associative collections (sets and maps) have a fixed and stable enumeration order.
 
-As a result of these design choices there is always a single _unique_ and _canonical_ result for any Bosque program. This means that developers will never see intermittent production failures or flakey unit-tests!
+As a result of these design choices there is always a single _unique_ and _canonical_ result for any Bosque program. This means that developers will never see intermittent production failures or flaky unit-tests!
 
 ## <a name="0.11-Equality-and-Representation"></a>0.11 Equality and Representation
 
-Equality is a multifaceted concept in programming and ensuring consistent behavior across the many areas it can surface in a modern programming language such as `==`, `.equals`, `Set.has`, `List.sort`, is source of subtle bugs.
+Equality is a multifaceted concept in programming and ensuring consistent behavior across the many areas it can surface in a modern programming language such as `==`, `.equals`, `Set.has`, `List.sort`, is a source of subtle bugs.
 This complexity further manifests itself in the need to consider the possible aliasing relations of values, in addition to their structural data, in order to understand the behavior of a block of code. The fact that _reference equality_ is chosen as a default, or is an option, is also a bit of an anachronism as reference equality heavily ties the execution to a hardware model in which objects are associated with a memory location.
 
-In light of these issues the Bosque language does not allow user visible _reference equality_ in any operation including `==` or container operations. Instead equality is defined either by the core language for the primitives `Bool`, `Int`, `String`, `GUID`, etc., or as a user defined _composite key_ `ckey` type ([5.21 Equality Comparison](#5.21-Equality-Comparison)). The composite key type allows a developer to create a distinct type to represent
-a composite equality comparable value that provides the notion of equality e.g. identity, primary key, equivalence, etc. that makes sense for their domain. The language also allows types to define a key field that will be used for equality/order by the associative containers in the language ([3 Collections](#3-Collections)).
+In light of these issues the Bosque language does not allow user visible _reference equality_ in any operation including `==` or container operations. Instead equality is defined either by the core language for the primitives `Bool`, `Int`, `String`, `GUID`, etc., or as a user defined _composite key_ `identifier` type ([5.21 Equality Comparison](#5.21-Equality-Comparison)). The composite key type allows a developer to create a distinct type to represent a composite equality comparable value that provides the notion of equality e.g. identity, primary key, equivalence, etc. that makes sense for their domain. The language also allows types to define a key field that will be used for equality/order by the associative containers in the language ([3 Collections](#3-Collections)).
 
 ## <a name="0.12-Errors-and-Checks"></a>0.12 Errors and Checks
 
-A central goal of the Bosque language is to simplify the process of building high reliability software. As part of this the language provides first-class support for expressing a full range of invariants, sanity-checks, and diagnostic assertions.
+A central goal of the Bosque language is to simplify the process of building high reliability software. As part of this, the language provides first-class support for expressing a full range of invariants, sanity-checks, and diagnostic assertions.
 
 ```none
 entity Foo {
@@ -247,7 +250,7 @@ entity Foo {
 
     method m(y: Int): Int
         requires y >= 0; //precondition
-        ensures _result_ > 0; //postcondition
+        ensures _return_ > 0; //postcondition
     {
         check this.x - y > 0;   //sanity check - enabled on optimized builds
         assert this.x * y != 0; //diagnostic assert - only for test/debug
@@ -259,7 +262,7 @@ entity Foo {
 
 ## <a name="0.13-Atomic-Constructors-and-Factories"></a>0.13 Atomic Constructors and Factories
 
-To reduce the amount of boilerplate code introduced by constructors, and in particular constructors that have long argument lists that are mainly passed through to super constructors, Bosque uses construction via direct field initialization to construct entity (object) values. For many uses this simple direct initializer approach is sufficient and there is no need for complex constructors that compute derived values as part of the constructor execution.
+To reduce the amount of boilerplate code introduced by constructors, and in particular constructors that have long argument lists that are mainly passed through to super constructors, Bosque uses construction via direct field initialization to construct entity (object) values. For many uses, this simple direct initializer approach is sufficient and there is no need for complex constructors that compute derived values as part of the constructor execution.
 
 However, it is sometimes useful to encapsulate initialization logic and, to accomplish this, we allow for the definition of `factory` functions which operate similar to constructors but, in some sense, are upside down. A factory function returns a record with all the fields needed for the enclosing entity/concept ([5.5 Entity Constructors](#5.5-Entity-Constructors)).
 
@@ -291,11 +294,201 @@ var q = Baz@{...Bar::default(), g=2};
 In this code the two `Baz` entities are allocated via the atomic initialization constructor. In the first case the omitted `h` field is set to the provided default value of `true`. The `identity` factory defines `f` and `g` values for the entity via the returned record. When invoked with the constructor syntax
 this is desugared to the atomic initializer with the result of factory.
 
-With this design the need to pass data up through super calls is eliminated as the data can be directly inserted into the initializer or, if the super constructor has factory logic, then the super factory can be called and the result expanded directly into the atomic constructor as in `p = Baz@{}...Bar::default(), g=2}`. The result of this inverted constructor logic is that _only_ the arguments needed for internal computation of initialization values must be propagated while all others can be directly set in the initializer. The elimination of the constructor boilerplate code and reduction in argument passing simplifies the definition of new nominal types as well as the impact of cascading changes when a field (or constructor argument) is added/removed in a base definition.
+With this design the need to pass data up through super calls is eliminated as the data can be directly inserted into the initializer or, if the super constructor has factory logic, then the super factory can be called and the result expanded directly into the atomic constructor as in `p = Baz@{...Bar::default(), g=2}`. The result of this inverted constructor logic is that _only_ the arguments needed for internal computation of initialization values must be propagated while all others can be directly set in the initializer. The elimination of the constructor boilerplate code and reduction in argument passing simplifies the definition of new nominal types as well as the impact of cascading changes when a field (or constructor argument) is added/removed in a base definition.
 
 ## <a name="0.14-Synthesis-Blocks"></a>0.14 Synthesis Blocks
 
 **[NOT IMPLEMENTED YET]**
+
+## <a name="0.15-Code-Style"></a>0.15 Code Style
+
+Code Style is an important part of the language. Code Style allows you to align the style of writing code. This allows you to avoid problems when reading the code and the extra errors associated with it.
+In this part of the documentation for the language are examples of code style, how to format some constructions and common errors.
+
+__This documentation was written based on the source code in the repository in the core.bsq and collection.bsq files. This documentation may not be complete, but I think that we will finish it closer to the first alpha version.__
+
+If in doubt, the following rules are used by default:
+
+### <a name="0.15.1-Brackets-Position"></a>0.15.1 Brackets Position
+From the position of the brackets, the readability of the entire code can vary greatly, especially if different styles are used everywhere, we recommend using the recommended style of brackets:
+
+To open a block, put a bracket on the line in which you declare the method.
+To close a block, put a bracket on a new line.
+
+##### Do:
+```
+function foo(...) {  
+    // code here
+}
+```
+
+##### Don't:
+
+```
+function foo(...) 
+{
+    // code here
+}
+```
+
+### <a name="0.15.2-Naming-Rules"></a>0.15.2 Naming Rules
+Names of methods and variables and fields start with an lower case letter and use camel humps:
+
+##### Do:
+```
+function foo(...) { ... }
+
+    // or 
+
+var! fooVariable = 1;
+```
+
+##### Don't:
+
+```
+function Foo(...) { ... }
+
+    // or
+
+var! FooVariable = 1;
+```
+
+Names of types start with an upper case letter:
+
+##### Do:
+
+```
+String
+
+    // or
+
+Alignment
+```
+##### Don't:
+
+```
+string
+
+    // or
+
+alignment
+```
+
+### <a name="0.15.3-Spacing-Rules"></a>0.15.3 Tabulation and Spacing
+Use an indent of 4 spaces or tabulation as 4 spaces
+
+##### Do:
+
+```
+function foo(...) {
+    bar();
+}
+```
+
+##### Don't:
+
+```
+function foo(...) {
+  bar();
+}
+```
+
+### <a name="0.15.4-Colon-Rules"></a>0.15.4 Colon
+If a colon is placed between the entity and the type, then the space before colon is omitted:
+
+##### Do:
+
+```
+function foo(...): Int { ... }
+```
+
+##### Don't:
+
+```
+function foo(...) : Int { ... }
+```
+
+### <a name="0.15.5-Method-Arguments"></a>0.15.5 Method Arguments
+Methods with a small number of arguments can be written on one line:
+
+##### Do:
+
+```
+function foo(name: String, id: Int) { ... }
+```
+
+##### Don't:
+
+```
+function foo(name: String, id: Int, year: Int, number: Int) { ... }
+```
+
+Methods with longer signatures must be formatted so that each parameter is located on a new line.:
+
+##### Do:
+
+```
+function foo(
+    name: String,
+    id: Int,
+    year: Int,
+    number: Int
+): Int {
+    ...
+}
+```
+
+##### Don't:
+
+```
+function foo(name: String, id: Int, year: Int, number: Int): Int {
+    ...
+}
+
+    // or
+
+function foo(name: String,
+            id: Int,
+            year: Int,
+            number: Int): Int {
+    ...
+}
+```
+
+### <a name="0.15.6-If-Statements"></a>0.15.6 If Statements
+The rules are the same as in the ([Brackets Position](#0.15.1-Brackets-Position)), only the else block is added. Below is an example of how to write and how not to.
+
+##### Do:
+
+```
+if(x == none || x == 0) {
+    y = 0;
+}
+else {
+    y = (x > 0) ? 1 : -1;
+}
+```
+
+##### Don't:
+
+```
+if(x == none || x == 0) {
+    y = 0;
+} else {
+    y = (x > 0) ? 1 : -1;
+}
+
+    // or
+
+if(x == none || x == 0) 
+{
+    y = 0;
+} 
+else 
+{
+    y = (x > 0) ? 1 : -1;
+}
+```
 
 # <a name="1-Type-System"></a>1 Type System
 
@@ -316,9 +509,9 @@ The nominal type system is a mostly standard _object-oriented_ design with param
 
 Users can define abstract types ([TODO]()), `concept` declarations, which allow both abstract definitions and inheritable implementations for `const` members ([TODO]()), `static` functions ([TODO]()), `field` members ([TODO]()), and virtual `method` members ([TODO]()). Bosque `concept` types are fully abstract and can never be instantiated concretely. The `entity` types can provide concepts as well as override definitions in them and can be instantiated concretely but can never be further inherited from.
 
-Developers can alias types or create special types ([TODO]()) using `typedef`, `enum`, and `ckey` constructs ([TODO]()).
+Developers can alias types or create special types ([TODO]()) using `typedef`, `enum`, and `identifier` constructs ([TODO]()).
 
-The Bosque core library defines several unique concepts/entities. The `Any` type is a uber type which all others are a subtype of, the `None` and `Some` types are for distinguishing around the unique `none` value, and `Tuple`, `Record`, etc. exist to unify with the structural type system ([section 2](#2-Core-Types)). The language has primitives for `Bool`, `Int`, `String`, etc. as well as the expected set of parametric collection types such as `List[T]` `Map[K, V]` ([section 3](#2-Collections)).
+The Bosque core library defines several unique concepts/entities. The `Any` type is an uber type which all others are a subtype of, the `None` and `Some` types are for distinguishing around the unique `none` value, and `Tuple`, `Record`, etc. exist to unify with the structural type system ([section 2](#2-Core-Types)). The language has primitives for `Bool`, `Int`, `String`, etc. as well as the expected set of parametric collection types such as `List[T]` `Map[K, V]` ([section 3](#2-Collections)).
 
 Examples of nominal types include:
 
@@ -326,7 +519,7 @@ Examples of nominal types include:
 MyType       //user declared concept or entity
 Some         //core library declared concept
 NSCore::Some //core library concept with explicit namespace scope
-List[Int]    //core collection with generic parameter Int 
+List[Int]    //core collection with generic parameter Int
 ```
 
 ### <a name="1.1.1-Type-Relation-on-Nominal-Types"></a>1.1.1 Type Relation on Nominal Types
@@ -364,7 +557,7 @@ function foo(zip: String[Zipcode], name: String) {...}
 var zc: String[Zipcode] = ...;
 var user: String = ...;
 
-foo(user, zc) //Type error String not convertable to String[Zipcode]
+foo(user, zc) //Type error String not convertible to String[Zipcode]
 foo(zc, user) //ok
 ```
 
@@ -407,17 +600,17 @@ A record is a map of identifier names to entries where each entry provides a typ
 {f: Int, ...} //Record required f open other
 ```
 
-The subtype relation on tuples `R1` and `R2` is a subset based order on the record entries where a required entry is always less than an optional (`?`) entry and open tuples match any suffixes of a closed tuple.
+The subtype relation on records `R1` and `R2` is a subset based order on the record entries where a required entry is always less than an optional (`?`) entry and open records match any suffixes of a closed record.
 
 ```none
 {f: Int} <: {f: Any}                    //true - Int <: Any
 {f: Int} <: {g: Int}                    //false - different names
 {f: Int} <: {f: Bool}                   //false - Int <! Bool
 {f: Int} <: {f: Any, g?: Bool}          //true - omitting optional type is ok
-{f: Int, g: Bool} <: {f: Int, g?: Bool] //true - optional type is ok
+{f: Int, g: Bool} <: {f: Int, g?: Bool} //true - optional type is ok
 {f: Int, g?: Bool} <: {f: Int}          //false - missing optional type
 {f: Int} <: {f: Int, ...}               //true - subset matches
-{f: Int, g: Bool] <: {f: Int, ...}      //true - subset matches, open covers rest
+{f: Int, g: Bool} <: {f: Int, ...}      //true - subset matches, open covers rest
 {f: Int, ...} <: {f: Int}               //false - open is not subtype of closed
 ```
 
@@ -434,7 +627,7 @@ fn(x?: Int) -> Int         //Function optional x parameter
 fn(...l: List[Int]) -> Int //Function rest List parameter
 ```
 
-The subtype relation on function `F1` and `F2` starts with a lexicographic order on the parameter entries (with _contravariant_ subtyping) where an optional (`?`) entry is always less than a required entry and open tuples match any suffixes of a closed tuple. The relation is _covariant_ in the return type.
+The subtype relation on function `F1` and `F2` starts with a lexicographic order on the parameter entries (with _contravariant_ subtyping) where an optional. The relation is _covariant_ in the return type.
 
 ```none
 fn(x: Any) -> Int <: fn(x: Int) -> Int  //true - Int <: Any
@@ -445,17 +638,17 @@ fn(x: Any) -> Int <: fn(y: Int) -> Int //false - name mismatch
 fn(x: Any) -> Int <: fn(_: Int) -> Int //true - name ignore
 fn(_: Any) -> Int <: fn(x: Int) -> Int //false - name needed
 
-fn(x: Int, y?: Bool) <: fn(x: Int) -> Int //true - omitting optional parameter is ok
-fn(y?: Bool) <: fn(y: Bool) -> Int        //true - optional parameter is subtype
-fn(x: Int) <: fn(x: Int, y?: Bool) -> Int //false - missing optional type
+fn(y?: Bool) -> Int         <: fn(y: Bool) -> Int          //false - optional parameter mismatch
+fn(x: Int, y?: Bool) -> Int <: fn(x: Int) -> Int           //false - mismatch optional parameter
+fn(x: Int) -> Int           <: fn(x: Int, y?: Bool) -> Int //false - mismatch optional type
 
 fn(x: Any) -> Int <: fn(x: Int) -> Any //true - Int <: Any
-fn(x: Any) -> Any <: fn(x: Int) -> Int //true - Any <! Int
+fn(x: Any) -> Any <: fn(x: Any) -> Int //false - Any <! Int
 
-fn(...r: List[Int]) -> Int <: fn(...r: List[Int]) -> Int   //true - prefix match
-fn(x: Any, ...r: List[Int]) -> Int <: fn(x: Int) -> Int    //true - prefix match
-fn(_: Int) -> Int <: fn(..._: List[Int]) -> Int            //false - rest match
-fn(...r: List[Int]) -> Int <: fn(_: Int) -> Int            //true - rest covers
+fn(...r: List[Int]) -> Int <: fn(...r: List[Int]) -> Int    //true - prefix match
+fn(...r: List[Int]) -> Int <: fn(_: Int) -> Int             //false - rest mismatch
+fn(...r: List[Int]) -> Int <: fn() -> Int                   //false - rest mismatch
+fn(...r: List[Int]) -> Int <: fn(...r: HashSet[Int]) -> Int //false - rest mismatch
 ```
 
 ## <a name="1.4-Combination-Types"></a>1.4 Combination Types
@@ -486,7 +679,7 @@ Int?? <: Int?             //true - algebra
 None? <: None             //true - algebra
 C1 + C2 <: C2             //true
 C1 + C1 <: C1             //true - algebra
-C1 <: C1 + C2             //false - (unless C2 <: C1)
+C1 <: C1 + C2             //false - (unless C1 <: C2)
 ```
 
 As shown in the above examples several combination types reduce to simpler version based on algebraic rules.
@@ -509,7 +702,7 @@ The Bosque language provides a rich set of expressions that support compact data
 
 ## <a name="5.1-Arguments"></a>5.1 Arguments
 
-Bosque has provides _named arguments_ along with _rest_ and _spread_ operators. These can be used to perform simple and powerful data manipulation as part of invocations and constructor operations. Examples of these situations include:
+Bosque provides _named arguments_ along with _rest_ and _spread_ operators. These can be used to perform simple and powerful data manipulation as part of invocations and constructor operations. Examples of these situations include:
 
 ```none
 function nsum(d: Int, ...args: List[Int]): Int {
@@ -541,7 +734,7 @@ The next set of examples show how _spread_ arguments can be used. In the first c
 
 ## <a name="5.2-Constants"></a>5.2 Constants
 
-Constant value expressions include `none`, `true`, `false` _Integer_, _String_, 
+Constant value expressions include `none`, `true`, `false` _Integer_, _String_,
 _TypedString_, and _TypedStringLiteral_:
 
 ```none
@@ -561,7 +754,7 @@ Most of these literal expressions are familiar from other languages but Bosque i
 
 ## <a name="5.3-Variable-and-Scoped-Access"></a>5.3 Variable and Scoped Access
 
-Simple name expressions can be used to refer to local, argument, and captured variables as well as type or globally scoped constants. Examples include:
+Simple name expressions can be used to refer to local, argument, and captured variables as well as to type or globally scoped constants. Examples include:
 
 ```none
 x              //Local, Argument, or Captured Variable
@@ -571,7 +764,7 @@ Bar[Int]::c    //Generic type scoped constant
 (Bar + Baz)::c //Conjunction type scoped constant
 ```
 
-In Bosque names are resolved using the lexical scope where they are used starting from the current block, up to arguments, captured variables, type and finally namespace scoping. Shadowing is not permitted on any variables. However, for arguments/locals in a lambda body can be the same as names in the enclosing declaring body (preventing the closure capture [section 5.6 Lambda Constructors](#5.6-Lambda-Constructors)).
+Names in Bosque are resolved using the lexical scope where they are used, starting from the current block, up to arguments, captured variables, type and finally namespace scoping. Shadowing is not permitted on any variables. However, arguments/locals in a lambda body can be the same as names in the enclosing declaring body (preventing the closure capture [section 5.6 Lambda Constructors](#5.6-Lambda-Constructors)).
 
 The ability to perform conjunction scoped constant resolution works by looking up the definition of the constant using both `Bar` and `Baz`. If the constant definition is the same for both then this is well defined (and legal) otherwise it is a type error.
 
@@ -611,7 +804,7 @@ var x = Baz@{f=1, g=2};          //Create a Baz entity with default value for h
 
 In this code snippet two `Baz` entities are allocated via the atomic initialization constructor. In the second case the omitted `h` field is set to the provided default value of true.
 
-Sometimes it is useful to encapsulate initialization logic and, to accomplish this, Bosque provides for the definition of `factory` functions which operate similar to constructors but, in some sense, are upside down. A factory function returns a record with all the fields needed for the enclosing entity/concept. So,the `identity` factory defines `f` and `g`. When invoked with the constructor syntax this is desugared to the atomic initializer being used with expanded record result of factory function, `Baz@{...Baz::identity(1)}`, in our example.
+Sometimes it is useful to encapsulate initialization logic and, to accomplish this, Bosque provides for the definition of `factory` functions which operate similar to constructors but, in some sense, are upside down. A factory function returns a record with all the fields needed for the enclosing entity/concept. So, the `identity` factory defines `f` and `g`. When invoked with the constructor syntax this is desugared to the atomic initializer being used with expanded record result of factory function, `Baz@{...Baz::identity(1)}`, in our example.
 
 With this design the need to pass data up through super calls is eliminated as the data can be directly inserted into the initializer or, if the super constructor has factory logic, then the super factory can be called and the result expanded directly into the atomic constructor as in `Baz@{...Bar::default(), g=2}` below.
 
@@ -644,14 +837,14 @@ The result of this inverted constructor logic is that _only_ the arguments neede
 Lambda constructors in the Bosque language combine a code definition for the lambda body with a variable _copy_ semantics for closure captured variables on lambda creation. The body definition can be either an expression or a statement block. In the case of ambiguity the body is preferentially parsed as a statement block.
 
 ```none
-var f = fn(): Int => { return 1; }             //No arguments statement block body
-var g = fn(): Int => 1                          //No arguments statement expression body
-var h = fn(x: Int): Int => x                    //One required argument
-var k = fn(x: Int, y?: Int): Int => @{a=x, b=y} //One required and one optional argument
+var f = fn(): Int => { return 1; }                             //No arguments statement block body
+var g = fn(): Int => 1;                                        //No arguments statement expression body
+var h = fn(x: Int): Int => x;                                  //One required argument
+var k = fn(x: Int, y?: Int): {a: Int, b: Int?} => @{a=x, b=y}; //One required and one optional argument
 
 var c = 1;
 var fc = fn(): Int => c; //Captured variable c
-var rc = fc()            //Result is 1
+var rc = fc();           //Result is 1
 
 var! m = 1;
 var fm = fn(): Int => m; //Captured variable - always copied
@@ -710,8 +903,8 @@ When combined with a chainable operator (below) the `?` operator short-circuits 
 
 The tuple typed chainable operators include:
 
-- [e] to get the value at index i in the tuple or none if the index is not defined
-- @[i, ..., j], create a new tuple using the values at indecies i, ..., j
+- [i] to get the value at index i in the tuple or none if the index is not defined
+- @[i, ..., j], create a new tuple using the values at indices i, ..., j
 
 Examples of these include:
 
@@ -719,7 +912,7 @@ Examples of these include:
 var t = @[ 1, 2, 3 ];
 
 t[0]         //1
-t?[1]        //1
+t?[0]        //1
 t[101]       //none
 t@[1]        //@[2]
 t@[2, 0]     //@[3, 1]
@@ -814,8 +1007,8 @@ t#[Int, Any]   //@[1, 2]
 var r = @{ f=1, g=2, k=true };
 r#{f: Int}          //@{f=1}
 r#{f: Bool}         //error type mismatch
-t#[f: Int, g?: Int] //@{f=1, g=2}
-t#[f: Int, g: Any]  //@{f=1, g=2}
+r#{f: Int, g?: Int} //@{f=1, g=2}
+r#{f: Int, g: Any}  //@{f=1, g=2}
 
 var e = Baz@{ f=1, g=2, k=true };
 e#Bar       //@{f=1}
@@ -876,12 +1069,12 @@ t<+(@[3, 5])    //@[1, 2, 3, 3, 5]
 var r = @{ f=1, g=2, k=true };
 r<+(@{g=5})          //@{f=1, g=5, k=true}
 r<+(@{g=3, k=false}) //@{f=1, g=3, k=false}
-r<+(@{g=5, h=0)      //@{f=1, g=5, k=true, h=0}
+r<+(@{g=5, h=0})     //@{f=1, g=5, k=true, h=0}
 
 var e = Baz@{ f=1, g=2, k=true };
 e<+(@{g=5})          //@{f=1, g=5, k=true}
 e<+(@{g=3, k=false}) //@{f=1, g=3, k=false}
-e<+(@{g=5, h=0)      //error field not defined
+e<+(@{g=5, h=0})     //error field not defined
 ```
 
 The ability to programmatically merge into values allows us to write concise data processing code and eliminate redundant code copying around individual values. In addition to helping prevent subtle bugs during initial coding the operators can also simplify the process of updating data representations when refactoring code by reducing the number of places where _explicit_ value deconstruction, update, and copies need to be used.
@@ -962,15 +1155,15 @@ The Bosque type system provides a unified model for all structural, primitive, a
 ## <a name="5.18-Pipeline"></a>5.18 Pipeline
 
 Higher-order processing of collections is a fundamental aspect of the Bosque language ([section](TODO)) but often times chaining filter/map/etc. is not a natural way to think about a particular set of operations and can result in the creation of substantial memory allocation for intermediate collection objects.
-Thus, Bosque allows the use of both method chaining for calls on collections _and_ pipelining, `|>`, values through multiple steps. This allows a developer to specify a sequence of operations, each of which is applied to elements from a base collection sequence, that transform the input data into a final collection. As with other chaining we support none-coalescing operations, `|?>`, which propagates a none immediately to the output in the pipeline and, `|??>`, which short circuits the processing and drops the value. Some representative examples are shown below:
+Thus, Bosque allows the use of both method chaining for calls on collections _and_ pipelining, `|>` (**[Not Implemented Yet]**), values through multiple steps. This allows a developer to specify a sequence of operations, each of which is applied to elements from a base collection sequence, that transform the input data into a final collection. As with other chaining we support none-coalescing operations, `|?>`, which propagates a none immediately to the output in the pipeline and, `|??>`, which short circuits the processing and drops the value. Some representative examples are shown below:
 
 ```none
-var v: List[Int?] = List@{1, 2, none, 4};
-  
-//Chained - List@{1, 4, 16}
-v.filter(fn(x) => x != none).map[Int](fn(x) => x*x)
+var v: List[Int?] = List[Int?]@{1, 2, none, 4};
 
-//Piped none filter - List@{1, 4, none, 16}
+//Chained - List@{1, 4, 16}
+v->filter(fn(x) => x != none)->map[Int](fn(x) => x*x)
+
+//Piped none filter - List@{1, 4, 16}
 v |> filter(fn(x) => x != none) |> map[Int](fn(x) => x*x)
 
 //Piped with noneable filter - List@{1, 4, 16}
@@ -1026,8 +1219,8 @@ The Bosque language provides `==` and `!=` operators which work for values of th
 - `Int`
 - `String` where typed strings are implicitly coerced to their untyped version
 - `GUID`
-- `Enum` where they types and values must be the same
-- `CustomKey` where they types and values must be the same
+- `Enum` where their types and values must be the same
+- `CustomKey` where their types and values must be the same
 
 Examples of the equality operators on primitive values include:
 
@@ -1041,26 +1234,20 @@ Examples of the equality operators on primitive values include:
 false == none              //false
 ```
 
-Bosque _does not_ admit _reference equality_ in any form. A program can either use explicit comparison on a primitive type _or_ a developer can define a custom key that provides the notion of equality e.g. identity, primary key, equivalence, etc. that makes sense for their domain.
+Bosque _does not_ admit _reference equality_ in any form. A program can either use explicit comparison on a primitive type _or_ a developer can define an identifier key that provides the notion of equality e.g. identity, primary key, equivalence, etc. that makes sense for their domain.
 
-Custom keys are compared using the type of the key and the pairwise equality of each field defined in the key.
+Identifier keys are compared using the type of the key and the pairwise equality of each field defined in the key.
 
 ```none
-ckey MyKey {
-    field idx: Int;
-    field category: String;
-}
+identifier MyKey [Int, String];
 
-ckey OtherKey {
-    field idx: Int;
-    field category: String;
-}
+identifier OtherKey Int;
 
-var a = MyKey@{1, "yes"};
-var b = MyKey@{1, "yes"};
-var c = MyKey@{1, "no"};
+var a = MyKey@create(@[1, "yes"]);
+var b = MyKey@create(@[1, "yes"]);
+var c = MyKey@create(@[1, "no"]);
 
-var q = OtherKey@{1, "yes"};
+var q = OtherKey@create(1);
 
 a == a //true
 a == b //true
@@ -1115,19 +1302,19 @@ true ==> none          //false
 Bosque provides specific none-coalescing operations, `?|` and `?&`, as opposed to truthy based coalescing that overloads the logical and/or operators.
 
 ```none
-function default(x?: Int, y?: Int) : Int {
+function defaultValue(x?: Int, y?: Int) : Int {
     return (x ?| 0) + (y ?| 0); //default on none
 }
-default(1, 1) //2
-default(1)    //1
-default()     //0
+defaultValue(1, 1) //2
+defaultValue(1)    //1
+defaultValue()     //0
 
-function check(x?: Int, y?: Int) : Int? {
+function checkValue(x?: Int, y?: Int) : Int? {
     return x ?& y ?& x + y; //check none
 }
-default(1, 1) //2
-default(1)    //none
-default()     //none
+checkValue(1, 1) //2
+checkValue(1)    //none
+checkValue()     //none
 ```
 
 The `?|` operator short-circuits on non-none values while the `?&` operator short-circuits on none values.
@@ -1147,14 +1334,14 @@ none ? 1 : 2      //2
 
 ## <a name="5.26-Statement-Expressions"></a>5.26 Statement Expressions
 
-Bosque includes _Match_, _If_, and _Block_ statements ([section 6 Statements](#6-Statements)) which can be used as both expressions and statements. It also allows these to be used in expression positions where the action blocks in If/Match are treated as expressions and, instead of `return`, a block will `yield` a result:
+Bosque includes _Switch_, _If_, and _Block_ statements ([section 6 Statements](#6-Statements)) which can be used as both expressions and statements. It also allows these to be used in expression positions where the action blocks in If/Switch are treated as expressions and, instead of `return`, a block will `yield` a result:
 
 ```none
 var a = if(true) 3 else 4;    //3
-var b = {var x = 3; yield x;} //3
-var c = match("yes") {
+var b = {| var x = 3; yield x; |} //3
+var c = switch("yes") {
     case "yes" => 5
-    case "no" => {var x = 5; yield x - 3;}
+    case "no" => {| var x = 5; yield x - 3; |}
     case _ => if(true) 11 else 17
 } //5
 ```
@@ -1163,7 +1350,7 @@ Note that the introduction of an expression block creates a new lexical scope fo
 
 The _If_ statement conditions allow `Bool` and `None` types.
 
-The _Match_ statements support destructuing and type operations in the match just as described in [section 6.6 Match](#6.8-Match).
+The _Switch_ statements support destructuring and type operations in the match just as described in [section 6.6 Match](#6.8-Switch).
 
 When block statements are used as expressions they cannot use `return` statements inside.
 
@@ -1254,7 +1441,62 @@ else {
 
 ## <a name="6.4-Structured-Declaration-and-Assignment"></a>6.4 Structured Declaration and Assignment
 
-**[Not Implemented Yet]**
+In addition to single variable declarations and assignments the Bosque language also supports de-structuring values with declaration/assignment to multiple variables simultaneously.
+
+```none
+@[var x: Int, var y: Int] = @[1, 2];               //declare and assign x=1, y=2 (explicit types)
+@{f=var x, g=var y} = @{f=1, g=2};                 //declare and assign x=1, y=2 (infer types)
+@{f=var x, g=@[var y, var z]} = @{f=1, g=@[2, 3]}; //declare x=1, y=2, and z=3
+```
+
+Just as with single variable declaration, variables can be declared as mutable:
+
+```none
+@[var! x, var! y] = @[1, 2]; //declare and assign x=1, y=2 (mutable)
+@[var! x, var y] = @[1, 2];  //declare and assign x=1, y=2 (x is mutable but y is not)
+```
+
+Since including `var` or `var!` for each variable is often redundant and cluttered you can do a single global declaration for all variables in the assignment:
+
+```none
+var @{f=x, g=y} = @{f=1, g=2};  //declare and assign x=1, y=2
+var! @{f=x, g=y} = @{f=1, g=2}; //declare and assign x=1, y=2 (mutable)
+```
+
+In addition to declaration variables can also be updated as part of a structured assignment:
+
+```none
+var! x: Int;
+var! y: Int;
+@{f=x, g=y} = @{f=1, g=2}; //assign x=1, y=2
+```
+
+It is possible to mix declarations and assignments:
+
+```none
+var! x: Int;
+@[x, var y] = @[1, 2]; //assign x=1 and declare y=2
+```
+
+Finally, as in many cases there are parts of a structure that are not useful, Bosque provides ways to ignore these values:
+
+```none
+//declare and assign x, y but ignore the h property
+var @{f=x, h=_, g=y} = @{f=1, g=2};
+
+//declare and assign x, y but ignore the h property which must be an Int
+var @{f=x, h=_:Int, g=y} = @{f=1, g=2};
+
+//declare and assign x, y -- since g property is missing y=none
+var @{f=x, g=y?: Int} = @{f=1};
+
+//declare and assign x -- ignore optional g property
+var @{f=x, g=_?} = @{f=1};
+
+//declare and assign x -- ignore any other tuple values
+var @[x, ...] = @[1, 2, 3];
+
+```
 
 ## <a name="6.5-Return-and-Yield"></a>6.5 Return and Yield
 
@@ -1301,7 +1543,7 @@ check false;  //raise error always
 check true;   //no effect
 ```
 
-The error semantics in Bosque are unique. In most languages errors are distinguishable as runtime error reporting requires the inclusion of observable information, like line numbers and error messages, to support failure analysis and debugging. However, Since Bosque execution is fully deterministic ([0.10 Determinacy](0.10-Determinacy)) and repeatable, the language has two execution semantics: _deployed_ and _debug_. In the deployed semantics _all runtime errors_ are indistinguishable while in the debug semantics errors contain full line number, call-stack, and error metadata. When an error occurs in _deployed_ mode the runtime simply aborts, resets, and re-runs the execution in _debug_ mode to compute the precise error!
+The error semantics in Bosque are unique. In most languages errors are distinguishable as runtime error reporting requires the inclusion of observable information, like line numbers and error messages, to support failure analysis and debugging. However, Since Bosque execution is fully deterministic ([0.10 Determinacy](#0.10-Determinacy)) and repeatable, the language has two execution semantics: _deployed_ and _debug_. In the deployed semantics _all runtime errors_ are indistinguishable while in the debug semantics errors contain full line number, call-stack, and error metadata. When an error occurs in _deployed_ mode the runtime simply aborts, resets, and re-runs the execution in _debug_ mode to compute the precise error!
 
 ## <a name="6.7-If-Then-Else"></a>6.7 If-Then-Else
 
@@ -1335,13 +1577,58 @@ else {
 }
 ```
 
-Note that dangling `elifs` must have a final `else` block. 
+Note that dangling `elifs` must have a final `else` block.
 
-To avoid ambiguity when _If_ statements/expressions are used the actions cannot nest naked _If_/_Match_ expressions. Instead they must be enclosed in an expression statement block.
+## <a name="6.8-Switch"></a>6.8 Switch
 
-## <a name="6.8-Match"></a>6.8 Match
+Bosque provides a `switch` statement that supports simple literal dispatch, type based dispatch, pattern matching, and optional additional constraints. A switch statement must be exhaustive in the case list so there is a simple wildcard case option `_` that matches anything.
 
-**[Not Implemented Yet]**
+A simple switch statement is:
+
+```none
+switch(x) {
+    case 0 => { return "zero"; }
+    case 1 => { return "one"; }
+    case _ => { return "many"; }
+}
+```
+
+The case statement uses the same syntax as structured assignments (plus checking literal values) and can bind variables:
+
+```none
+var! z: Int;
+switch(x) {
+    case @[1, var y: Int] => { return y; }     //on match define, bind, and use y
+    case var @{f=2, g=y: Int} => { return y; } //on match define all new vars in the match
+    case @{f=3, g=z} => { return z; }          //on match bind the mutable outer variable z
+    case _ => { return none; }
+}
+```
+
+The `switch` statement also supports matching on the type of the value as in the following example:
+
+```none
+switch(x) {
+    type Bool => { return false; }
+    type Int => { return 0; }
+    type String => {return ""; }
+    type {f: Int, g?: Bool} => { return x.f; }
+    case _ => { return none; }
+}
+```
+
+The `switch` statement supports additional conditions with the use of a `when` clause. This clause can be any boolean expression and, in the case of bound variables, may refer to them as well. 
+
+```none
+switch(x) {
+    case Int when x >= 0 => { return x; }
+    case Int when x < 0 => { return -x; }
+    case {f=_: Int, g=var y: Int} when y != 0 => { return y; }
+    case _ => { return -1; }
+}
+```
+
+Finally, a switch statement is allowed to mix `case` and `type` matches *but* it is required to be exhaustive. The matches are checked in order from top to bottom, first matching option is taken, and if none of the matches are valid a runtime error is raised.
 
 ## <a name="6.9-Block"></a>6.9 Block
 
@@ -1352,7 +1639,7 @@ var x = 3;
 {
     var y = 5;
 
-    var z: Int;
+    var! z: Int;
     if(x != 3) {
         z = 0;
     }

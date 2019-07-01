@@ -36,6 +36,16 @@
 					"begin": "//",
 					"end": "$",
 					"name": "comment.line.double-dash.bosque"
+				},
+				{
+					"captures": {
+						"1": {
+							"name": "punctuation.definition.comment.bosque"
+						}
+					},
+					"begin": "/\\*",
+					"end": "\\*/",
+					"name": "comment.multiline.double-dash.bosque"
 				}
 			]
 		},
@@ -85,11 +95,11 @@
 			"patterns": [
 				{
 					"name": "keyword.control.bosque",
-					"match": "\\b(assert|check|elif|else|if|return|yield)\\b"
+					"match": "\\b(abort|assert|case|check|elif|else|if|return|switch|type|yield)\\b"
 				},
 				{
 					"name": "keyword.bosque",
-					"match": "\\b(this|hidden|factory|virtual|abstract|override|concept|const|enum|entity|ensures|field|fn|from|function|global|ckey|invariant|method|namespace|provides|requires|static|typedef|unique|using|var|when|where)\\b"
+					"match": "\\b(this|hidden|factory|virtual|abstract|override|concept|const|enum|entity|ensures|field|fn|from|function|global|identifier|invariant|method|namespace|provides|requires|static|typedef|unique|using|var|when|where)\\b"
 				}
 			]
 		},

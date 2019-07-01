@@ -3,10 +3,10 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-import { Value, TypedStringValue, EntityValueSimple, ValueOps, ListValue, TreeSetValue, TreeMapValue, TupleValue, RecordValue, LambdaValue } from "./value";
-import { Environment, PrePostError, raiseRuntimeError, FunctionScope, InvariantError } from "./interpreter_environment";
+import { Value, TypedStringValue, EntityValueSimple, ValueOps, ListValue, HashSetValue, HashMapValue, TupleValue, RecordValue, LambdaValue } from "./value";
+import { Environment, PrePostError, raiseRuntimeError, FunctionScope, InvariantError, NotImplementedRuntimeError } from "./interpreter_environment";
 import { MIRAssembly, MIRTupleType, MIRTupleTypeEntry, MIRRecordTypeEntry, MIRRecordType, MIREntityType, MIREntityTypeDecl, MIRFieldDecl, MIROOTypeDecl, MIRType, MIRGlobalDecl, MIRConstDecl, MIRFunctionDecl, MIRStaticDecl, MIRConceptTypeDecl, MIRMethodDecl, MIRInvokeDecl, MIRFunctionType } from "../compiler/mir_assembly";
-import { MIRBody, MIROp, MIROpTag, MIRLoadConst, MIRArgument, MIRTempRegister, MIRRegisterArgument, MIRConstantTrue, MIRConstantString, MIRConstantInt, MIRConstantNone, MIRConstantFalse, MIRLoadConstTypedString, MIRAccessNamespaceConstant, MIRAccessConstField, MIRLoadFieldDefaultValue, MIRAccessCapturedVariable, MIRAccessArgVariable, MIRAccessLocalVariable, MIRConstructorPrimary, MIRConstructorPrimaryCollectionEmpty, MIRConstructorPrimaryCollectionSingletons, MIRConstructorPrimaryCollectionCopies, MIRConstructorPrimaryCollectionMixed, MIRConstructorTuple, MIRConstructorRecord, MIRConstructorLambda, MIRCallNamespaceFunction, MIRCallStaticFunction, MIRAccessFromIndex, MIRProjectFromIndecies, MIRAccessFromProperty, MIRAccessFromField, MIRProjectFromProperties, MIRProjectFromFields, MIRProjectFromTypeTuple, MIRProjectFromTypeRecord, MIRProjectFromTypeConcept, MIRModifyWithIndecies, MIRModifyWithProperties, MIRModifyWithFields, MIRStructuredExtendTuple, MIRStructuredExtendRecord, MIRStructuredExtendObject, MIRInvokeKnownTarget, MIRInvokeVirtualTarget, MIRCallLambda, MIRPrefixOp, MIRBinOp, MIRBinCmp, MIRBinEq, MIRRegAssign, MIRVarStore, MIRReturnAssign, MIRJump, MIRJumpCond, MIRJumpNone, MIRVarLifetimeStart, MIRVarLifetimeEnd, MIRCheck, MIRAssert, MIRTruthyConvert } from "../compiler/mir_ops";
+import { MIRBody, MIROp, MIROpTag, MIRLoadConst, MIRArgument, MIRTempRegister, MIRRegisterArgument, MIRConstantTrue, MIRConstantString, MIRConstantInt, MIRConstantNone, MIRConstantFalse, MIRLoadConstTypedString, MIRAccessNamespaceConstant, MIRAccessConstField, MIRLoadFieldDefaultValue, MIRAccessCapturedVariable, MIRAccessArgVariable, MIRAccessLocalVariable, MIRConstructorPrimary, MIRConstructorPrimaryCollectionEmpty, MIRConstructorPrimaryCollectionSingletons, MIRConstructorPrimaryCollectionCopies, MIRConstructorPrimaryCollectionMixed, MIRConstructorTuple, MIRConstructorRecord, MIRConstructorLambda, MIRCallNamespaceFunction, MIRCallStaticFunction, MIRAccessFromIndex, MIRProjectFromIndecies, MIRAccessFromProperty, MIRAccessFromField, MIRProjectFromProperties, MIRProjectFromFields, MIRProjectFromTypeTuple, MIRProjectFromTypeRecord, MIRProjectFromTypeConcept, MIRModifyWithIndecies, MIRModifyWithProperties, MIRModifyWithFields, MIRStructuredExtendTuple, MIRStructuredExtendRecord, MIRStructuredExtendObject, MIRInvokeKnownTarget, MIRInvokeVirtualTarget, MIRCallLambda, MIRPrefixOp, MIRBinOp, MIRBinCmp, MIRBinEq, MIRRegAssign, MIRVarStore, MIRReturnAssign, MIRJump, MIRJumpCond, MIRJumpNone, MIRVarLifetimeStart, MIRVarLifetimeEnd, MIRTruthyConvert, MIRDebug, MIRPhi, MIRVarLocal, MIRIsTypeOfNone, MIRIsTypeOfSome, MIRIsTypeOf, MIRLogicStore, MIRAbort } from "../compiler/mir_ops";
 
 import * as assert from "assert";
 import { BuiltinCalls, BuiltinCallSig } from "./builtins";
@@ -153,13 +153,13 @@ class Interpreter {
         if (ootype.name === "List") {
             return new ListValue(ctype, []);
         }
-        else if (ootype.name === "TreeSet") {
-            return TreeSetValue.create(ctype, []);
+        else if (ootype.name === "HashSet") {
+            return HashSetValue.create(ctype, []);
         }
         else {
-            assert(ootype.name === "TreeMap");
+            assert(ootype.name === "HashMap");
 
-            return TreeMapValue.create(ctype, [] as TupleValue[]);
+            return HashMapValue.create(ctype, [] as TupleValue[]);
         }
     }
 
@@ -171,13 +171,13 @@ class Interpreter {
         if (ootype.name === "List") {
             return new ListValue(ctype, args);
         }
-        else if (ootype.name === "TreeSet") {
-            return TreeSetValue.create(ctype, args);
+        else if (ootype.name === "HashSet") {
+            return HashSetValue.create(ctype, args);
         }
         else {
-            assert(ootype.name === "TreeMap");
+            assert(ootype.name === "HashMap");
 
-            return TreeMapValue.create(ctype, args as TupleValue[]);
+            return HashMapValue.create(ctype, args as TupleValue[]);
         }
     }
 
@@ -189,13 +189,13 @@ class Interpreter {
         if (ootype.name === "List") {
             return new ListValue(ctype, args);
         }
-        else if (ootype.name === "TreeSet") {
-            return TreeSetValue.create(ctype, args);
+        else if (ootype.name === "HashSet") {
+            return HashSetValue.create(ctype, args);
         }
         else {
-            assert(ootype.name === "TreeMap");
+            assert(ootype.name === "HashMap");
 
-            return TreeMapValue.create(ctype, args as TupleValue[]);
+            return HashMapValue.create(ctype, args as TupleValue[]);
         }
     }
 
@@ -207,13 +207,13 @@ class Interpreter {
         if (ootype.name === "List") {
             return new ListValue(ctype, args);
         }
-        else if (ootype.name === "TreeSet") {
-            return TreeSetValue.create(ctype, args);
+        else if (ootype.name === "HashSet") {
+            return HashSetValue.create(ctype, args);
         }
         else {
-            assert(ootype.name === "TreeMap");
+            assert(ootype.name === "HashMap");
 
-            return TreeMapValue.create(ctype, args as TupleValue[]);
+            return HashMapValue.create(ctype, args as TupleValue[]);
         }
     }
 
@@ -254,17 +254,17 @@ class Interpreter {
             }
             case MIROpTag.AccessCapturedVariable: {
                 const lcv = op as MIRAccessCapturedVariable;
-                fscope.assignTmpReg(lcv.trgt.regID, fscope.lookupVar(lcv.name));
+                fscope.assignTmpReg(lcv.trgt.regID, fscope.lookupVar(lcv.name.nameID));
                 break;
             }
             case MIROpTag.AccessArgVariable: {
                 const lav = op as MIRAccessArgVariable;
-                fscope.assignTmpReg(lav.trgt.regID, fscope.lookupVar(lav.name));
+                fscope.assignTmpReg(lav.trgt.regID, fscope.lookupVar(lav.name.nameID));
                 break;
             }
             case MIROpTag.AccessLocalVariable: {
                 const llv = op as MIRAccessLocalVariable;
-                fscope.assignTmpReg(llv.trgt.regID, fscope.lookupVar(llv.name));
+                fscope.assignTmpReg(llv.trgt.regID, fscope.lookupVar(llv.name.nameID));
                 break;
             }
             case MIROpTag.ConstructorPrimary: {
@@ -585,8 +585,8 @@ class Interpreter {
             case MIROpTag.MIRInvokeKnownTarget: {
                 const invk = op as MIRInvokeKnownTarget;
                 const fdecl = this.m_env.assembly.methodDecls.get(invk.mkey) as MIRMethodDecl;
-                let args = new Map<string, Value>().set("this", this.getArgValue(fscope, invk.self));
-                for (let i = 1; i < fdecl.invoke.params.length; ++i) {
+                let args = new Map<string, Value>();
+                for (let i = 0; i < fdecl.invoke.params.length; ++i) {
                     args.set(fdecl.invoke.params[i].name, this.getArgValue(fscope, invk.args[i]));
                 }
                 if (fdecl.invoke.optRestName !== undefined) {
@@ -597,10 +597,14 @@ class Interpreter {
             }
             case MIROpTag.MIRInvokeVirtualTarget: {
                 const invk = op as MIRInvokeVirtualTarget;
-                const tvalue = this.getArgValue(fscope, invk.self) as EntityValueSimple;
-                const fdecl = (this.m_env.assembly.entityMap.get(tvalue.etype.ekey) as MIREntityTypeDecl).vcallMap.get(invk.vresolve) as MIRMethodDecl;
-                let args = new Map<string, Value>().set("this", tvalue);
-                for (let i = 1; i < fdecl.invoke.params.length; ++i) {
+                const tvalue = this.getArgValue(fscope, invk.args[0]);
+                const ttype = ValueOps.getValueType(tvalue).options[0] as MIREntityType;
+
+                const edecl = this.m_env.assembly.entityMap.get(ttype.ekey) as MIREntityTypeDecl;
+                const fdecl = edecl.vcallMap.get(invk.vresolve) as MIRMethodDecl;
+
+                let args = new Map<string, Value>();
+                for (let i = 0; i < fdecl.invoke.params.length; ++i) {
                     args.set(fdecl.invoke.params[i].name, this.getArgValue(fscope, invk.args[i]));
                 }
                 if (fdecl.invoke.optRestName !== undefined) {
@@ -649,7 +653,7 @@ class Interpreter {
                         fscope.assignTmpReg(bop.trgt.regID, lhv * rhv);
                         break;
                     case "/":
-                        fscope.assignTmpReg(bop.trgt.regID, lhv / rhv);
+                        fscope.assignTmpReg(bop.trgt.regID, Math.floor(lhv / rhv));
                         break;
                     default:
                         fscope.assignTmpReg(bop.trgt.regID, lhv % rhv);
@@ -680,6 +684,25 @@ class Interpreter {
                 }
                 break;
             }
+            case MIROpTag.MIRIsTypeOfNone: {
+                const ton = op as MIRIsTypeOfNone;
+                const argv = this.getArgValue(fscope, ton.arg);
+                fscope.assignTmpReg(ton.trgt.regID, argv === undefined);
+                break;
+            }
+            case MIROpTag.MIRIsTypeOfSome: {
+                const tos = op as MIRIsTypeOfSome;
+                const argv = this.getArgValue(fscope, tos.arg);
+                fscope.assignTmpReg(tos.trgt.regID, argv !== undefined);
+                break;
+            }
+            case MIROpTag.MIRIsTypeOf: {
+                const tog = op as MIRIsTypeOf;
+                const argv = this.getArgValue(fscope, tog.arg);
+                const istype = this.m_env.assembly.typeMap.get(tog.oftype) as MIRType;
+                fscope.assignTmpReg(tog.trgt.regID, this.m_env.assembly.subtypeOf(ValueOps.getValueType(argv), istype));
+                break;
+            }
             case MIROpTag.MIRRegAssign: {
                 const regop = op as MIRRegAssign;
                 fscope.assignTmpReg(regop.trgt.regID, this.getArgValue(fscope, regop.src));
@@ -690,45 +713,72 @@ class Interpreter {
                 fscope.assignTmpReg(tcop.trgt.regID, ValueOps.convertBoolOrNoneToBool(this.getArgValue(fscope, tcop.src)));
                 break;
             }
+            case MIROpTag.MIRLogicStore: {
+                const llop = op as MIRLogicStore;
+                const lhv = this.getArgValue(fscope, llop.lhs) as boolean;
+                const rhv = this.getArgValue(fscope, llop.rhs) as boolean;
+                fscope.assignTmpReg(llop.trgt.regID, llop.op === "&" ? (lhv && rhv) : (lhv || rhv));
+                break;
+            }
             case MIROpTag.MIRVarStore: {
                 const vs = op as MIRVarStore;
-                fscope.assignVar(vs.name, this.getArgValue(fscope, vs.src));
+                fscope.assignVar(vs.name.nameID, this.getArgValue(fscope, vs.src));
                 break;
             }
             case MIROpTag.MIRReturnAssign: {
                 const ra = op as MIRReturnAssign;
-                fscope.assignVar("_return_", this.getArgValue(fscope, ra.src));
+                fscope.assignVar(ra.name.nameID, this.getArgValue(fscope, ra.src));
                 break;
             }
-            case MIROpTag.MIRAssert: {
-                const asrt = op as MIRAssert;
-                if (this.m_doAssertCheck && !this.getArgValue(fscope, asrt.cond)) {
+            case MIROpTag.MIRAbort: {
+                const abrt = op as MIRAbort;
+                if (this.m_doAssertCheck || abrt.releaseEnable) {
                     raiseRuntimeError();
                 }
                 break;
             }
-            case MIROpTag.MIRCheck: {
-                const chk = op as MIRCheck;
-                if (!this.getArgValue(fscope, chk.cond)) {
-                    raiseRuntimeError();
+            case MIROpTag.MIRDebug: {
+                const dbg = op as MIRDebug;
+                if (dbg.value === undefined) {
+                    throw new NotImplementedRuntimeError("MIRDebug -- debug attach");
+                }
+                else {
+                    const pval = this.getArgValue(fscope, dbg.value);
+                    process.stdout.write(ValueOps.diagnosticPrintValue(pval) + "\n");
                 }
                 break;
             }
             case MIROpTag.MIRJump: {
                 const jop = op as MIRJump;
+                fscope.setLastJumpSource();
                 fscope.setActiveBlock(jop.trgtblock);
                 break;
             }
             case MIROpTag.MIRJumpCond: {
                 const cjop = op as MIRJumpCond;
                 const bv = ValueOps.convertBoolOrNoneToBool(this.getArgValue(fscope, cjop.arg));
+                fscope.setLastJumpSource();
                 fscope.setActiveBlock(bv ? cjop.trueblock : cjop.falseblock);
                 break;
             }
             case MIROpTag.MIRJumpNone: {
                 const njop = op as MIRJumpNone;
                 const bv = this.getArgValue(fscope, njop.arg) === undefined;
+                fscope.setLastJumpSource();
                 fscope.setActiveBlock(bv ? njop.noneblock : njop.someblock);
+                break;
+            }
+            case MIROpTag.MIRPhi: {
+                const pop = op as MIRPhi;
+                const uvar = pop.src.get(fscope.getLastJumpSource()) as MIRRegisterArgument;
+                if (pop.trgt instanceof MIRTempRegister) {
+                    fscope.assignTmpReg(pop.trgt.regID, this.getArgValue(fscope, uvar));
+                }
+                else {
+                    assert(pop.trgt instanceof MIRVarLocal);
+
+                    fscope.assignVar(pop.trgt.nameID, this.getArgValue(fscope, uvar));
+                }
                 break;
             }
             case MIROpTag.MIRVarLifetimeStart: {
@@ -760,6 +810,8 @@ class Interpreter {
             const blck = fscope.getActiveOps();
             this.evaluateBlock(blck, fscope);
         }
+
+        this.evaluateBlock(fscope.getActiveOps(), fscope);
     }
 
     evaluateRootNamespaceCall(ns: string, func: string, cargs: Value[]): Value {

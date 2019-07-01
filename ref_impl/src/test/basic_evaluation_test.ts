@@ -135,11 +135,11 @@ function restArgListSimple(...arg: List[Int]): List[Int] {
     return arg;
 }
 
-function restArgSetSimple[T](...arg: TreeSet[T]): TreeSet[T] {
+function restArgSetSimple[T](...arg: HashSet[T]): HashSet[T] {
     return arg;
 }
 
-function restArgMapSimple(...arg: TreeMap[Int, Bool]): TreeMap[Int, Bool] {
+function restArgMapSimple(...arg: HashMap[Int, Bool]): HashMap[Int, Bool] {
     return arg;
 }
 
@@ -422,6 +422,42 @@ entrypoint function eqTypedStringMixedFalse(): Bool {
     return 'hello'#Foo == "hi";
 }
 
+entrypoint function eqTupleTrue(): Bool {
+    return @[1, 2] == @[1, 2];
+}
+
+entrypoint function eqTupleFalse(): Bool {
+    return @[1] == @[3];
+}
+
+entrypoint function eqRecordTrue(): Bool {
+    return @{f=2} == @{f=2};
+}
+
+entrypoint function eqRecordFalse(): Bool {
+    return @{f=2, g=5} == @{f=2, g=1};
+}
+
+entrypoint function eqTupleTrue_Mix(): Bool {
+    var tup: [Int, Int, ?:String] = (1 != 0) ? @[1, 2] : @[1, 2, "ok"];
+    return @[1, 2] == tup;
+}
+
+entrypoint function eqTupleFalse_Mix(): Bool {
+    var tup: [Int, Int, ?:String] = (1 == 0) ? @[1, 2] : @[1, 2, "ok"];
+    return @[1, 2] == tup;
+}
+
+entrypoint function eqRecordTrue_Mix(): Bool {
+    var rec: {f:Int, g?:Int} = (1 != 0) ? @{f=2} : @{f=2, g=5};
+    return @{f=2} == rec;
+}
+
+entrypoint function eqRecordFalse_Mix(): Bool {
+    var rec: {f:Int, g?:Int} = (1 == 0) ? @{f=2} : @{f=2, g=5};
+    return @{f=2} == rec;
+}
+
 entrypoint function neqIntTrue(): Bool {
     return 1 != 2;
 }
@@ -678,6 +714,11 @@ entrypoint function lambdaArgumentInferTest(): Int {
     return lambdaArgument(fn(x) => { return x * 2; }, 3);
 }
 
+entrypoint function lambdaMultiTest():Int {
+    var f = (1 == 1) ? fn(x: Int): Int => { return x * 2; } : fn(x: Any): Int => { return 2; };
+    return f(3);
+}
+
 entrypoint function createObjSimple(): E1 {
     return E1@{ x=none, y=1, z=true, f=3 };
 }
@@ -767,27 +808,27 @@ entrypoint function createListExpando(): List[Int] {
 }
 
 entrypoint function createSet(): Set[Int] {
-    return TreeSet[Int]@{ 1, 2, 3 };
+    return HashSet[Int]@{ 1, 2, 3 };
 }
 
 entrypoint function createSetOverlap(): Set[Int] {
-    return TreeSet[Int]@{ 1, 2, 3, 2 };
+    return HashSet[Int]@{ 1, 2, 3, 2 };
 }
 
 entrypoint function createSetExpando(): Set[Int] {
-    return TreeSet[Int]@{ ...TreeSet[Int]@{ 1 }, 2, ...List[Int]@{ 4, 5 } };
+    return HashSet[Int]@{ ...HashSet[Int]@{ 1 }, 2, ...List[Int]@{ 4, 5 } };
 }
 
 entrypoint function createMap(): Map[Int, Bool] {
-    return TreeMap[Int, Bool]@{ @[ 1, true ], @[ 2, true ] };
+    return HashMap[Int, Bool]@{ @[ 1, true ], @[ 2, true ] };
 }
 
 entrypoint function createMapOverlap(): Map[Int, Bool] {
-    return TreeMap[Int, Bool]@{ @[ 1, true ], @[ 2, false ], @[ 2, true ] };
+    return HashMap[Int, Bool]@{ @[ 1, true ], @[ 2, false ], @[ 2, true ] };
 }
 
 entrypoint function createMapExpando(): Map[Int, Bool] {
-    return TreeMap[Int, Bool]@{ @[ 1, true ], ...TreeMap[Int, Bool]@{ @[ 1, false ], @[ 2, true ] }, @[ 5, true ] };
+    return HashMap[Int, Bool]@{ @[ 1, true ], ...HashMap[Int, Bool]@{ @[ 1, false ], @[ 2, true ] }, @[ 5, true ] };
 }
 
 entrypoint function invokee3func(): Int {
@@ -837,6 +878,120 @@ entrypoint function invokee4mc(): Int {
 entrypoint function invokee4mcc(): Int {
     return E4[Int]@{}->mcc[Int](3);
 }
+
+entrypoint function eblock_4(): Int {
+    return {| var x = 3; yield x + 1; |};
+}
+
+entrypoint function eblock_5(): Int {
+    return {|
+        var x = 3;
+        var y = 5;
+        if(x >= y) {
+            yield x;
+        }
+        yield y;
+    |};
+}
+
+entrypoint function eblock_3(): Int {
+    return {|
+        var x = 3;
+        var y = {| yield 5; |} == 5 ? 3 : 1;
+        yield y;
+    |};
+}
+
+entrypoint function eif_abs1(): Int {
+    var x = -3;
+    var y = if(x < 0) -x else x;
+    return y;
+}
+
+entrypoint function eif_abs2(): Int {
+    var x = 3;
+    return if(x < 0) {|
+        yield -x;
+    |}
+    else {|
+        yield x;
+    |};
+}
+
+entrypoint function eif_absy_none(): Int {
+    var x = (1 > 2) ? 1 : none;
+    return if(x == none) 0 else {|
+        var! y = x;
+        if(y < 0) {
+            y = -y;
+        }
+        yield y;
+    |};
+}
+
+entrypoint function eif_absy_1(): Int {
+    var x = (3 > 2) ? 1 : none;
+    return if(x == none)
+        0
+    else {|
+        var! y = x;
+        if(y < 0) {
+            y = -y;
+        }
+        yield y;
+    |};
+}
+
+entrypoint function enestif_abs1(): Int {
+    var x = (3 > 2) ? -3 : none;
+    var y = if(x == none) 0 else if(x > 0) x else -x;
+    return y;
+}
+
+function ematch(arg: Any, tv?: Bool): Int {
+    return switch(arg) {
+        type None => 1
+        case 2 => 2
+        case @[var x: Int, 3] => {| yield x + 1; |}
+        type {f?: Int} => switch(arg.f) {
+            case none => 0
+            case _ => -1
+        }
+        case _ => if(tv) 10 else 11
+    };
+}
+
+entrypoint function ematch_1(): Int {
+    return ematch(none);
+}
+
+entrypoint function ematch_2(): Int {
+    return ematch(2);
+}
+
+entrypoint function ematch_3(): Int {
+    return ematch(@[2, 3]);
+}
+
+entrypoint function ematch_10(): Int {
+    return ematch("yes", true);
+}
+
+entrypoint function ematch_0(): Int {
+    return ematch(@{});
+}
+
+entrypoint function ematch_n1(): Int {
+    return ematch(@{f=2});
+}
+
+entrypoint function ematch_11(): Int {
+    return ematch("no", false);
+}
+
+entrypoint function ematch_11alt(): Int {
+    return ematch("no");
+}
 `;
 
 const expression_tests: TestInfo[] = [
@@ -847,6 +1002,7 @@ const expression_tests: TestInfo[] = [
     { name: "literal3", input: ["literal3"], expected: "3" },
     { name: "literalEmptyString", input: ["literalEmptyString"], expected: "\"\"" },
     { name: "literalHello", input: ["literalHello"], expected: "\"hello\"" },
+
     { name: "literalFooString", input: ["literalFooString"], expected: "'hello'#NSTestExpression::Foo" },
     { name: "literalFooObject", input: ["literalFooObject"], expected: "NSTestExpression::Foo@{}" },
 
@@ -915,6 +1071,14 @@ const expression_tests: TestInfo[] = [
     { name: "eqTypedStringTrue", input: ["eqTypedStringTrue"], expected: "true" },
     { name: "eqTypedStringMixedTrue", input: ["eqTypedStringMixedTrue"], expected: "true" },
     { name: "eqTypedStringMixedFalse", input: ["eqTypedStringMixedFalse"], expected: "false" },
+    { name: "eqTupleTrue", input: ["eqTupleTrue"], expected: "true" },
+    { name: "eqTupleFalse", input: ["eqTupleFalse"], expected: "false" },
+    { name: "eqRecordTrue", input: ["eqRecordTrue"], expected: "true" },
+    { name: "eqRecordFalse", input: ["eqRecordFalse"], expected: "false" },
+    { name: "eqTupleTrue_Mix", input: ["eqTupleTrue_Mix"], expected: "true" },
+    { name: "eqTupleFalse_Mix", input: ["eqTupleFalse_Mix"], expected: "false" },
+    { name: "eqRecordTrue_Mix", input: ["eqRecordTrue_Mix"], expected: "true" },
+    { name: "eqRecordFalse_Mix", input: ["eqRecordFalse_Mix"], expected: "false" },
     { name: "neqIntTrue", input: ["neqIntTrue"], expected: "true" },
     { name: "neqIntFalse", input: ["neqIntFalse"], expected: "false" },
 
@@ -983,6 +1147,7 @@ const expression_tests: TestInfo[] = [
     { name: "lambdaShortTestOut", input: ["lambdaShortTestOut"], expected: "none" },
     { name: "lambdaArgumentTest", input: ["lambdaArgumentTest"], expected: "6" },
     { name: "lambdaArgumentInferTest", input: ["lambdaArgumentInferTest"], expected: "6" },
+    { name: "lambdaMultiTest", input: ["lambdaMultiTest"], expected: "6" },
 
     { name: "createObjSimple", input: ["createObjSimple"], expected: "NSTestExpression::E1@{ f=3, x=none, y=1, z=true }" },
     { name: "createObjDefault", input: ["createObjDefault"], expected: "NSTestExpression::E1@{ f=3, x=none, y=3, z=true }" },
@@ -1000,21 +1165,21 @@ const expression_tests: TestInfo[] = [
     { name: "updateObj", input: ["updateObj"], expected: "NSTestExpression::E1@{ f=5, x=false, y=1, z=true }" },
 
     { name: "restCallSimpleArgsList", input: ["restCallSimpleArgsList"], expected: "NSCore::List[T=NSCore::Int]@{ 1, 1, 2 }" },
-    { name: "restCallSimpleArgsSet", input: ["restCallSimpleArgsSet"], expected: "NSCore::TreeSet[T=NSCore::Int]@{ 1, 2, 3, 4 }" },
-    { name: "restCallOverlapArgsSet", input: ["restCallOverlapArgsSet"], expected: "NSCore::TreeSet[T=NSCore::Int]@{ 1, 2, 3 }" },
-    { name: "restCallSimpleArgsMap", input: ["restCallSimpleArgsMap"], expected: "NSCore::TreeMap[K=NSCore::Int, V=NSCore::Bool]@{ @[ 1, false ], @[ 2, true ] }" },
-    { name: "restCallOverlapArgsMap", input: ["restCallOverlapArgsMap"], expected: "NSCore::TreeMap[K=NSCore::Int, V=NSCore::Bool]@{ @[ 1, true ] }" },
+    { name: "restCallSimpleArgsSet", input: ["restCallSimpleArgsSet"], expected: "NSCore::HashSet[T=NSCore::Int]@{ 4, 1, 2, 3 }" },
+    { name: "restCallOverlapArgsSet", input: ["restCallOverlapArgsSet"], expected: "NSCore::HashSet[T=NSCore::Int]@{ 1, 2, 3 }" },
+    { name: "restCallSimpleArgsMap", input: ["restCallSimpleArgsMap"], expected: "NSCore::HashMap[K=NSCore::Int, V=NSCore::Bool]@{ @[ 1, false ], @[ 2, true ] }" },
+    { name: "restCallOverlapArgsMap", input: ["restCallOverlapArgsMap"], expected: "NSCore::HashMap[K=NSCore::Int, V=NSCore::Bool]@{ @[ 1, true ] }" },
     { name: "restCallMixedList1", input: ["restCallMixedList1"], expected: "NSCore::List[T=NSCore::Int]@{ 4, 1, 2, 3 }" },
     { name: "restCallMixedList2", input: ["restCallMixedList2"], expected: "NSCore::List[T=NSCore::Int]@{ 4, 1, 2, 3 }" },
 
     { name: "createList", input: ["createList"], expected: "NSCore::List[T=NSCore::Int]@{ 1, 1, 2 }" },
     { name: "createListExpando", input: ["createListExpando"], expected: "NSCore::List[T=NSCore::Int]@{ 1, 1, 2, 4 }" },
-    { name: "createSet", input: ["createSet"], expected: "NSCore::TreeSet[T=NSCore::Int]@{ 1, 2, 3 }" },
-    { name: "createSetOverlap", input: ["createSetOverlap"], expected: "NSCore::TreeSet[T=NSCore::Int]@{ 1, 2, 3 }" },
-    { name: "createSetExpando", input: ["createSetExpando"], expected: "NSCore::TreeSet[T=NSCore::Int]@{ 1, 2, 4, 5 }" },
-    { name: "createMap", input: ["createMap"], expected: "NSCore::TreeMap[K=NSCore::Int, V=NSCore::Bool]@{ @[ 1, true ], @[ 2, true ] }" },
-    { name: "createMapOverlap", input: ["createMapOverlap"], expected: "NSCore::TreeMap[K=NSCore::Int, V=NSCore::Bool]@{ @[ 1, true ], @[ 2, true ] }" },
-    { name: "createMapExpando", input: ["createMapExpando"], expected: "NSCore::TreeMap[K=NSCore::Int, V=NSCore::Bool]@{ @[ 1, false ], @[ 2, true ], @[ 5, true ] }" },
+    { name: "createSet", input: ["createSet"], expected: "NSCore::HashSet[T=NSCore::Int]@{ 1, 2, 3 }" },
+    { name: "createSetOverlap", input: ["createSetOverlap"], expected: "NSCore::HashSet[T=NSCore::Int]@{ 1, 3, 2 }" },
+    { name: "createSetExpando", input: ["createSetExpando"], expected: "NSCore::HashSet[T=NSCore::Int]@{ 1, 2, 4, 5 }" },
+    { name: "createMap", input: ["createMap"], expected: "NSCore::HashMap[K=NSCore::Int, V=NSCore::Bool]@{ @[ 1, true ], @[ 2, true ] }" },
+    { name: "createMapOverlap", input: ["createMapOverlap"], expected: "NSCore::HashMap[K=NSCore::Int, V=NSCore::Bool]@{ @[ 1, true ], @[ 2, true ] }" },
+    { name: "createMapExpando", input: ["createMapExpando"], expected: "NSCore::HashMap[K=NSCore::Int, V=NSCore::Bool]@{ @[ 1, false ], @[ 2, true ], @[ 5, true ] }" },
 
     { name: "invokee3func", input: ["invokee3func"], expected: "4" },
     { name: "invokee4func", input: ["invokee4func"], expected: "false" },
@@ -1027,11 +1192,30 @@ const expression_tests: TestInfo[] = [
     { name: "invokee4ii", input: ["invokee4ii"], expected: "3" },
     { name: "invokee4m3", input: ["invokee4m3"], expected: "6" },
     { name: "invokee4mc", input: ["invokee4mc"], expected: "0" },
-    { name: "invokee4mcc", input: ["invokee4mcc"], expected: "3" }
+    { name: "invokee4mcc", input: ["invokee4mcc"], expected: "3" },
+
+    { name: "eblock_4", input: ["eblock_4"], expected: "4" },
+    { name: "eblock_5", input: ["eblock_5"], expected: "5" },
+    { name: "eblock_3", input: ["eblock_3"], expected: "3" },
+
+    { name: "eif_abs1", input: ["eif_abs1"], expected: "3" },
+    { name: "eif_abs2", input: ["eif_abs2"], expected: "3" },
+    { name: "eif_absy_none", input: ["eif_absy_none"], expected: "0" },
+    { name: "eif_absy_1", input: ["eif_absy_1"], expected: "1" },
+    { name: "enestif_abs1", input: ["enestif_abs1"], expected: "3" },
+
+    { name: "ematch_1", input: ["ematch_1"], expected: "1" },
+    { name: "ematch_2", input: ["ematch_2"], expected: "2" },
+    { name: "ematch_3", input: ["ematch_3"], expected: "3" },
+    { name: "ematch_10", input: ["ematch_10"], expected: "10" },
+    { name: "ematch_0", input: ["ematch_0"], expected: "0" },
+    { name: "ematch_n1", input: ["ematch_n1"], expected: "-1" },
+    { name: "ematch_11", input: ["ematch_11"], expected: "11" },
+    { name: "ematch_11", input: ["ematch_11"], expected: "11" }
 ];
 
 function expression_setup(core: { relativePath: string, contents: string }[]): { masm: MIRAssembly | undefined, errors: string[] } {
-    const files = core.concat([{ relativePath: "basic_expression_test.fl", contents: expression_test }]);
+    const files = core.concat([{ relativePath: "basic_expression_test.bsq", contents: expression_test }]);
 
     return MIREmitter.generateMASM(new PackageConfig(), files);
 }
@@ -1095,6 +1279,98 @@ entrypoint function varDeclAndAssignWithNoValue(): Int? {
     var! x: Int?;
     x = 5;
     return x;
+}
+
+entrypoint function structuredDeclTuple(): Int {
+    @[var x: Int, var y] = @[1, 2];
+    return x + y;
+}
+
+entrypoint function structuredDeclMutableTuple(): Int {
+    @[var! x: Int, var! y] = @[1, 2];
+    x = x + 1;
+    y = y + 1;
+    return x + y;
+}
+
+entrypoint function structuredAssignTuple(): Int {
+    var! x: Int = 4;
+    var! y: Int;
+
+    @[x, y] = @[1, 2];
+    return x + y;
+}
+
+entrypoint function structuredDeclRecord(): Int {
+    @{f=var x: Int, g=var y} = @{f=1, g=2};
+    return x + y;
+}
+
+entrypoint function structuredDeclMutableRecord(): Int {
+    @{f=var! x: Int, g=var! y} = @{f=1, g=2};
+    return x + y;
+}
+
+entrypoint function structuredAssignRecord(): Int {
+    var! x: Int = 4;
+    var! y: Int;
+
+    @{f=x, g=y} = @{f=1, g=2};
+    return x + y;
+}
+
+entrypoint function structuredDeclAndAssign(): Int {
+    var! y: Int;
+
+    @[var x: Int, y] = @[1, 2];
+    return x + y;
+}
+
+entrypoint function structuredDeclGlobal(): Int {
+    var @{f=x, g=y} = @{f=1, g=2};
+    return x + y;
+}
+
+entrypoint function structuredDeclGlobalMutable(): Int {
+    var! @{f=x: Int, g=y} = @{f=1, g=2};
+    x = x + 1;
+    y = y + 1;
+    return x + y;
+}
+
+entrypoint function structuredRecordWithTuple(): Int {
+    var @{f=x, g=@[y, z]} = @{f=1, g=@[2, 3]};
+    return x + y + z;
+}
+
+entrypoint function structuredTupleWithRecord(): Int {
+    var @[x, @{f=y, g=z}] = @[1, @{f=2, g=3}];
+    return x + y + z;
+}
+
+entrypoint function structuredDeclAndAssignOptionalsMatch(): Int {
+    var @{f=x?: Int, g=y?} = @{f=1, g=2};
+    return x + y;
+}
+
+entrypoint function structuredDeclAndAssignOptionalsDefault(): Int {
+    var @{f=x?: Int, g=y?} = (0 < 1) ? @{} : @{f=1, g=2};
+    return (x ?| 1) + (y ?| 2);
+}
+
+entrypoint function structuredDeclAndAssignOpenTuple(): Int {
+    @[var x: Int, var y, ...] = @[1, 2, 4];
+    return x + y;
+}
+
+entrypoint function structuredDeclAndAssignOpenRecord(): Int {
+    var @{f=x, g=y, ...} = @{f=1, h=12, g=2};
+    return x + y;
+}
+
+entrypoint function structuredDeclAndAssignIgnores(): Int {
+    var @{f=_, g=@[y, _:Int]} = @{f=1, g=@[2, 3]};
+    return y;
 }
 
 entrypoint function ifAssignInBranches(): Int | Bool | None {
@@ -1170,6 +1446,254 @@ entrypoint function ifReturnInElifBranch(): Int {
     }
 }
 
+function switchCaseInt(x: Int): Int {
+    switch(x) {
+        case 1 => { return 1; }
+        case 2 => { return 2; }
+        case 3 => { return 3; }
+        case _ => { ; }
+    }
+
+    return x;
+}
+
+function switchCaseMixedTypes(x: Any): Int {
+    switch(x) {
+        case none => { return 1; }
+        case @[1, 2] => { return 2; }
+        case @{f=1} => { return 3; }
+        case "ok" => { return 4; }
+        case _ => { ; }
+    }
+
+    return 31;
+}
+
+function switchCaseBindTypes(x: Any): Int {
+    var! z: Int;
+    switch(x) {
+        case @[1, var y: Int] => { return y; }
+        case @[2, var! y: Int] => { return y; }
+        case @[3, _:Int, var y: Int] => { return y; }
+        case @[3, _:Int, var y: Int, ...] => { return y; }
+        case @{f=1, g=var y: Int} => { return y; }
+        case var @{f=2, g=y: Int} => { return y; }
+        case @{f=3, g=z} => { return z; }
+        case var y: Int => { return y; }
+        case _ => { ; }
+    }
+
+    return 31;
+}
+
+function switchCaseBindWhen(x: Any): Int {
+    var! z: Int;
+    switch(x) {
+        case @[1, var y: Int] when y > 0 => { return y; }
+        case @[1, var y: Int] when y <= 0 => { return 0; }
+        case @[2, var y?: Int] => { return y ?| 20; }
+        case @[2, var y: Int, z] => { return y + z; }
+        case _ => { ; }
+    }
+
+    return 31;
+}
+
+function switchCaseType(x: Any): Int {
+    switch(x) {
+        type Int => { return 1; }
+        type [Int, Int] => { return 2; }
+        type {f:Int, g?:Int} => { return x.g ?| x.f; }
+        case _ => { ; }
+    }
+
+    return 31;
+}
+
+function switchCaseTypeWhen(x: Any): Int {
+    switch(x) {
+        type Int when x > 0 => { return x; }
+        type Int => { return -x; }
+        type {f:Int, g?:Int} when x.f == 10 => { return x.f; }
+        case _ => { ; }
+    }
+
+    return 31;
+}
+
+function switchCaseEx(x: Any): Any {
+    switch(x) {
+        type Int => { return 0; }
+        type Bool => { return false; }
+    }
+}
+
+entrypoint function switchCaseInt_1(): Int {
+    return switchCaseInt(1);
+}
+
+entrypoint function switchCaseInt_2(): Int {
+    return switchCaseInt(2);
+}
+
+entrypoint function switchCaseInt_3(): Int {
+    return switchCaseInt(3);
+}
+
+entrypoint function switchCaseInt_x(): Int {
+    return switchCaseInt(5);
+}
+
+entrypoint function switchCaseAny_none(): Int {
+    return switchCaseMixedTypes(none);
+}
+
+entrypoint function switchCaseAny_tup(): Int {
+    return switchCaseMixedTypes(@[1,2]);
+}
+
+entrypoint function switchCaseAny_rec(): Int {
+    return switchCaseMixedTypes(@{f=1});
+}
+
+entrypoint function switchCaseAny_string(): Int {
+    return switchCaseMixedTypes("ok");
+}
+
+entrypoint function switchCaseAny_x(): Int {
+    return switchCaseMixedTypes("fallthrough");
+}
+
+entrypoint function switchCaseBindTypes_1(): Int {
+    return switchCaseBindTypes(@[1, 1]);
+}
+
+entrypoint function switchCaseBindTypes_2(): Int {
+    return switchCaseBindTypes(@[1, 2]);
+}
+
+entrypoint function switchCaseBindTypes_3(): Int {
+    return switchCaseBindTypes(@[3, 5, 3]);
+}
+
+entrypoint function switchCaseBindTypes_4(): Int {
+    return switchCaseBindTypes(@[3, 5, 4, 7, 11]);
+}
+
+entrypoint function switchCaseBindTypes_5(): Int {
+    return switchCaseBindTypes(@{f=1, g=5});
+}
+
+entrypoint function switchCaseBindTypes_6(): Int {
+    return switchCaseBindTypes(@{f=2, g=6});
+}
+
+entrypoint function switchCaseBindTypes_7(): Int {
+    return switchCaseBindTypes(@{f=3, g=7});
+}
+
+entrypoint function switchCaseBindTypes_8(): Int {
+    return switchCaseBindTypes(8);
+}
+
+entrypoint function switchCaseBindWhen_1(): Int {
+    return switchCaseBindWhen(@[1, 1]);
+}
+
+entrypoint function switchCaseBindWhen_0(): Int {
+    return switchCaseBindWhen(@[1, -1]);
+}
+
+entrypoint function switchCaseBindWhen_5(): Int {
+    return switchCaseBindWhen(@[2, 5]);
+}
+
+entrypoint function switchCaseBindWhen_20(): Int {
+    return switchCaseBindWhen(@[2]);
+}
+
+entrypoint function switchCaseBindWhen_101(): Int {
+    return switchCaseBindWhen(@[2, 1, 100]);
+}
+
+entrypoint function switchCaseType_1(): Int {
+    return switchCaseType(3);
+}
+
+entrypoint function switchCaseType_2(): Int {
+    return switchCaseType(@[1, 2]);
+}
+
+entrypoint function switchCaseType_3(): Int {
+    return switchCaseType(@{f=3});
+}
+
+entrypoint function switchCaseType_4(): Int {
+    return switchCaseType(@{f=3, g=4});
+}
+
+entrypoint function switchCaseType_31(): Int {
+    return switchCaseType(true);
+}
+
+entrypoint function switchCaseTypeWhen_10(): Int {
+    return switchCaseTypeWhen(10);
+}
+
+entrypoint function switchCaseTypeWhen_3(): Int {
+    return switchCaseTypeWhen(-3);
+}
+
+entrypoint function switchCaseTypeWhen_10v1(): Int {
+    return switchCaseTypeWhen(@{f=10});
+}
+
+entrypoint function switchCaseTypeWhen_10v2(): Int {
+    return switchCaseTypeWhen(@{f=10, g=3});
+}
+
+entrypoint function switchCaseTypeWhen_31v1(): Int {
+    return switchCaseTypeWhen(@{f=10, g=true});
+}
+
+entrypoint function switchCaseTypeWhen_31v2(): Int {
+    return switchCaseTypeWhen(@{f=20});
+}
+
+entrypoint function switchCaseTypeWhen_31v3(): Int {
+    return switchCaseTypeWhen("ok");
+}
+
+entrypoint function switchCaseEx_0(): Any {
+    return switchCaseEx(5);
+}
+
+entrypoint function switchCaseEx_false(): Any {
+    return switchCaseEx(true);
+}
+
+entrypoint function switchCaseEx_error(): Any {
+    return switchCaseEx(@{});
+}
+
+entrypoint function abortOk(): Int {
+    if(1 < 2) {
+        return 1;
+    }
+    else {
+        abort;
+    }
+}
+
+entrypoint function abortFail(): Int {
+    if(1 == 2) {
+        return 1;
+    }
+    else {
+        abort;
+    }
+}
+
 entrypoint function assertOk(): Int {
     assert 1 < 2;
     return 1;
@@ -1231,6 +1755,24 @@ const statement_tests: TestInfo[] = [
     { name: "varDeclAndAssignNoType", input: ["varDeclAndAssignNoType"], expected: "4" },
     { name: "varDeclAndAssignWithNoValue", input: ["varDeclAndAssignWithNoValue"], expected: "5" },
 
+    { name: "structuredDeclTuple", input: ["structuredDeclTuple"], expected: "3" },
+    { name: "structuredDeclMutableTuple", input: ["structuredDeclMutableTuple"], expected: "5" },
+    { name: "structuredAssignTuple", input: ["structuredAssignTuple"], expected: "3" },
+    { name: "structuredDeclRecord", input: ["structuredDeclRecord"], expected: "3" },
+    { name: "structuredDeclMutableRecord", input: ["structuredDeclMutableRecord"], expected: "3" },
+    { name: "structuredAssignRecord", input: ["structuredAssignRecord"], expected: "3" },
+    { name: "structuredDeclAndAssign", input: ["structuredDeclAndAssign"], expected: "3" },
+    { name: "structuredDeclGlobal", input: ["structuredDeclGlobal"], expected: "3" },
+    { name: "structuredDeclGlobalMutable", input: ["structuredDeclGlobalMutable"], expected: "5" },
+    { name: "structuredRecordWithTuple", input: ["structuredRecordWithTuple"], expected: "6" },
+    { name: "structuredTupleWithRecord", input: ["structuredTupleWithRecord"], expected: "6" },
+    { name: "structuredDeclAndAssignOptionalsMatch", input: ["structuredDeclAndAssignOptionalsMatch"], expected: "3" },
+    { name: "structuredDeclAndAssignOptionalsDefault", input: ["structuredDeclAndAssignOptionalsDefault"], expected: "3" },
+
+    { name: "structuredDeclAndAssignOpenTuple", input: ["structuredDeclAndAssignOpenTuple"], expected: "3" },
+    { name: "structuredDeclAndAssignOpenRecord", input: ["structuredDeclAndAssignOpenRecord"], expected: "3" },
+    { name: "structuredDeclAndAssignIgnores", input: ["structuredDeclAndAssignIgnores"], expected: "2" },
+
     { name: "ifAssignInBranches", input: ["ifAssignInBranches"], expected: "1" },
     { name: "ifReAssignInBranches", input: ["ifReAssignInBranches"], expected: "2" },
     { name: "ifReturnInBranches", input: ["ifReturnInBranches"], expected: "1" },
@@ -1238,6 +1780,53 @@ const statement_tests: TestInfo[] = [
     { name: "ifEarlyReturnNo", input: ["ifEarlyReturnNo"], expected: "false" },
     { name: "ifReturnInElifBranch", input: ["ifReturnInElifBranch"], expected: "1" },
 
+    { name: "switchCaseInt_1", input: ["switchCaseInt_1"], expected: "1" },
+    { name: "switchCaseInt_2", input: ["switchCaseInt_2"], expected: "2" },
+    { name: "switchCaseInt_3", input: ["switchCaseInt_3"], expected: "3" },
+    { name: "switchCaseInt_x", input: ["switchCaseInt_x"], expected: "5" },
+
+    { name: "switchCaseAny_none", input: ["switchCaseAny_none"], expected: "1" },
+    { name: "switchCaseAny_tup", input: ["switchCaseAny_tup"], expected: "2" },
+    { name: "switchCaseAny_rec", input: ["switchCaseAny_rec"], expected: "3" },
+    { name: "switchCaseAny_string", input: ["switchCaseAny_string"], expected: "4" },
+    { name: "switchCaseAny_x", input: ["switchCaseAny_x"], expected: "31" },
+
+    { name: "switchCaseBindTypes_1", input: ["switchCaseBindTypes_1"], expected: "1" },
+    { name: "switchCaseBindTypes_2", input: ["switchCaseBindTypes_2"], expected: "2" },
+    { name: "switchCaseBindTypes_3", input: ["switchCaseBindTypes_3"], expected: "3" },
+    { name: "switchCaseBindTypes_4", input: ["switchCaseBindTypes_4"], expected: "4" },
+    { name: "switchCaseBindTypes_5", input: ["switchCaseBindTypes_5"], expected: "5" },
+    { name: "switchCaseBindTypes_6", input: ["switchCaseBindTypes_6"], expected: "6" },
+    { name: "switchCaseBindTypes_7", input: ["switchCaseBindTypes_7"], expected: "7" },
+    { name: "switchCaseBindTypes_8", input: ["switchCaseBindTypes_8"], expected: "8" },
+
+    { name: "switchCaseBindWhen_1", input: ["switchCaseBindWhen_1"], expected: "1" },
+    { name: "switchCaseBindWhen_0", input: ["switchCaseBindWhen_0"], expected: "0" },
+    { name: "switchCaseBindWhen_5", input: ["switchCaseBindWhen_5"], expected: "5" },
+    { name: "switchCaseBindWhen_20", input: ["switchCaseBindWhen_20"], expected: "20" },
+    { name: "switchCaseBindWhen_101", input: ["switchCaseBindWhen_101"], expected: "101" },
+
+    { name: "switchCaseType_1", input: ["switchCaseType_1"], expected: "1" },
+    { name: "switchCaseType_2", input: ["switchCaseType_2"], expected: "2" },
+    { name: "switchCaseType_3", input: ["switchCaseType_3"], expected: "3" },
+    { name: "switchCaseType_4", input: ["switchCaseType_4"], expected: "4" },
+    { name: "switchCaseType_31", input: ["switchCaseType_31"], expected: "31" },
+
+    { name: "switchCaseTypeWhen_10", input: ["switchCaseTypeWhen_10"], expected: "10" },
+    { name: "switchCaseTypeWhen_3", input: ["switchCaseTypeWhen_3"], expected: "3" },
+    { name: "switchCaseTypeWhen_10v1", input: ["switchCaseTypeWhen_10v1"], expected: "10" },
+    { name: "switchCaseTypeWhen_10v2", input: ["switchCaseTypeWhen_10v2"], expected: "10" },
+
+    { name: "switchCaseTypeWhen_31v1", input: ["switchCaseTypeWhen_31v1"], expected: "31" },
+    { name: "switchCaseTypeWhen_31v2", input: ["switchCaseTypeWhen_31v2"], expected: "31" },
+    { name: "switchCaseTypeWhen_31v3", input: ["switchCaseTypeWhen_31v3"], expected: "31" },
+
+    { name: "switchCaseEx_0", input: ["switchCaseEx_0"], expected: "0" },
+    { name: "switchCaseEx_false", input: ["switchCaseEx_false"], expected: "false" },
+    { name: "switchCaseEx_error", input: ["switchCaseEx_error"], expected: "[NO RESULT]", expectedError: true },
+
+    { name: "abortOk", input: ["abortOk"], expected: "1" },
+    { name: "abortFail", input: ["abortFail"], expected: "[NO RESULT]", expectedError: true },
     { name: "assertOk", input: ["assertOk"], expected: "1" },
     { name: "assertFail", input: ["assertFail"], expected: "[NO RESULT]", expectedError: true },
     { name: "checkOk", input: ["checkOk"], expected: "1" },
@@ -1248,7 +1837,7 @@ const statement_tests: TestInfo[] = [
 ];
 
 function statement_setup(core: { relativePath: string, contents: string }[]): { masm: MIRAssembly | undefined, errors: string[] } {
-    const files = core.concat([{ relativePath: "basic_statement_test.fl", contents: statement_test }]);
+    const files = core.concat([{ relativePath: "basic_statement_test.bsq", contents: statement_test }]);
 
     return MIREmitter.generateMASM(new PackageConfig(), files);
 }
